@@ -1,4 +1,4 @@
-// 修正後（CommonJS形式） ✅
+// ✅ これが正しい（Cloudflare Pages対応）
 module.exports = {
   plugins: {
     tailwindcss: {},
