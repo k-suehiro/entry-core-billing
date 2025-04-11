@@ -424,5 +424,3 @@ function PurchaseInvoiceList({ invoices = [] }) {
 }
 
 export default PurchaseInvoiceList;
-
-export default PurchaseInvoiceList
