@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entry Core Billing - 伝票管理台帳</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .hover-scale {
+            transition: transform 0.2s ease-in-out;
+        }
+        
+        .hover-scale:hover {
+            transform: scale(1.02);
+        }
+        
+        .modal-backdrop {
+            backdrop-filter: blur(4px);
+        }
+        
+        .table-row:hover {
+            background-color: #f9fafb;
+            cursor: pointer;
+        }
+        
+        .nav-link {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .nav-link:hover {
+            background-color: rgba(55, 65, 81, 0.7);
+        }
+        
+        .nav-link.active {
+            background-color: #3b82f6;
+        }
+        
+        .nav-link.active.green {
+            background-color: #10b981;
+        }
+        
+        .search-input {
+            transition: border-color 0.2s ease-in-out;
+        }
+        
+        .search-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .btn {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card {
+            transition: box-shadow 0.2s ease-in-out;
+        }
+        
+        .card:hover {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="app"></div>
+
+    <script>
+        // Mock Data
+        const mockDepartments = [
+            { id: 'dept1', name: '東京事業所' },
+            { id: 'dept2', name: '浜松事業所' },
+        ];
+
+        const mockEmployees = [
+            { id: 'emp1', name: '山田 太郎', department_id: 'dept1' },
+            { id: 'emp2', name: '鈴木 花子', department_id: 'dept1' },
+            { id: 'emp3', name: '佐藤 次郎', department_id: 'dept2' },
+        ];
+
+        const mockCustomers = [
+            { id: 'cust1', code: 'C001', name: '[C] トヨタ自動車株式会社', taxType: '課税' },
+            { id: 'cust2', code: 'C002', name: '[C] 本田技研工業株式会社', taxType: '課税' },
+            { id: 'cust3', code: 'C003', name: '[C] スズキ株式会社', taxType: '不課税' },
+            { id: 'cust4', code: 'C004', name: '[C] 日産自動車株式会社', taxType: '課税' },
+            { id: 'cust5', code: 'C005', name: '[C] ヤマハ発動機株式会社', taxType: '不課税' },
+        ];
+
+        const mockSuppliers = [
+            { id: 'sup1', code: 'V001', name: '[V] 株式会社トウキョウメディアワークス' },
+            { id: 'sup2', code: 'V002', name: '[V] オオサカコンテンツラボ' },
+            { id: 'sup3', code: 'V003', name: '[V] 名古屋ドキュメントサービス' },
+            { id: 'sup4', code: 'V004', name: '[V] さいたま翻訳センター' },
+            { id: 'sup5', code: 'V005', name: '[V] 神奈川ローカライズ合同会社' },
+        ];
+
+        const mockProducts = [
+            { id: 'prod1', name: 'エアコン制御基板 KXG-6680EV ユーザーマニュアル 日本語版 新規制作', basePrice: 15000 },
+            { id: 'prod2', name: '冷蔵庫インバーター ZRF-3001HX サービスマニュアル 英語版 改訂制作', basePrice: 25000 },
+            { id: 'prod3', name: '洗濯機モーター TWM-9200L 保守マニュアル スペイン語翻訳 新規制作', basePrice: 35000 },
+            { id: 'prod4', name: '電子レンジセンサー RMW-1202SN 取扱説明書 日本語版 改訂制作', basePrice: 12000 },
+            { id: 'prod5', name: '自動車ECU DVE-450X システムガイド 英語版 新規制作', basePrice: 45000 },
+        ];
+
+        // Generate mock sales invoices
+        const generateProductNumber = () => {
+            const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M'];
+            const letter = letters[Math.floor(Math.random() * letters.length)];
+            const number = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+            return `TK25${letter}${number}`;
+        };
+
+        const generateRandomDate = () => {
+            const start = new Date('2024-01-01').getTime();
+            const end = new Date().getTime();
+            const randomDate = new Date(start + Math.random() * (end - start));
+            return randomDate.toISOString().split('T')[0];
+        };
+
+        const mockSalesInvoices = Array.from({ length: 50 }, (_, index) => {
+            const customer = mockCustomers[Math.floor(Math.random() * mockCustomers.length)];
+            const employee = mockEmployees[Math.floor(Math.random() * mockEmployees.length)];
+            const department = mockDepartments.find(d => d.id === employee.department_id);
+            
+            const details = Array.from({ length: 1 + Math.floor(Math.random() * 5) }, () => {
+                const product = mockProducts[Math.floor(Math.random() * mockProducts.length)];
+                const quantity = Math.floor(1 + Math.random() * 10);
+                const unitPrice = product.basePrice + Math.floor(Math.random() * 3000);
+                return {
+                    productNumber: generateProductNumber(),
+                    productName: product.name,
+                    quantity,
+                    unit: '個',
+                    unitPrice,
+                    amount: quantity * unitPrice
+                };
+            });
+
+            return {
+                id: `SI${String(index + 1).padStart(6, '0')}`,
+                invoiceNumber: `SI${String(index + 1).padStart(6, '0')}`,
+                customerCode: customer.code,
+                customerName: customer.name,
+                customerTaxType: customer.taxType,
+                invoiceDate: generateRandomDate(),
+                details,
+                totalAmount: details.reduce((sum, detail) => sum + detail.amount, 0),
+                employee: employee.name,
+                department: department.name
+            };
+        });
+
+        const mockPurchaseInvoices = Array.from({ length: 30 }, (_, index) => {
+            const supplier = mockSuppliers[Math.floor(Math.random() * mockSuppliers.length)];
+            const employee = mockEmployees[Math.floor(Math.random() * mockEmployees.length)];
+            const department = mockDepartments.find(d => d.id === employee.department_id);
+            
+            const details = Array.from({ length: 1 + Math.floor(Math.random() * 5) }, () => {
+                const product = mockProducts[Math.floor(Math.random() * mockProducts.length)];
+                const quantity = Math.floor(1 + Math.random() * 10);
+                const unitPrice = product.basePrice - Math.floor(Math.random() * 3000);
+                const amount = quantity * unitPrice;
+                return {
+                    id: crypto.randomUUID(),
+                    productNumber: generateProductNumber(),
+                    productName: product.name,
+                    workCode: '70000',
+                    quantity,
+                    unit: '個',
+                    unitPrice,
+                    amount
+                };
+            });
+
+            return {
+                id: `PO${String(index + 1).padStart(6, '0')}`,
+                supplierCode: supplier.code,
+                supplierName: supplier.name,
+                date: generateRandomDate(),
+                details,
+                totalAmount: details.reduce((sum, detail) => sum + detail.amount, 0),
+                employee: employee.name,
+                department: department.name
+            };
+        });
+
+        // Application State
+        let currentView = 'sales';
+        let currentPage = 1;
+        let rowsPerPage = 10;
+        let searchTerm = '';
+        let dateRange = { start: '', end: '' };
+        let isProfileModalOpen = false;
+
+        // Utility Functions
+        const formatDate = (dateString) => {
+            return new Date(dateString).toLocaleDateString('ja-JP', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).replace(/\//g, '/');
+        };
+
+        const formatCurrency = (amount) => {
+            return `¥${amount.toLocaleString()}`;
+        };
+
+        const filterInvoices = (invoices) => {
+            let filtered = [...invoices];
+
+            if (searchTerm) {
+                const searchLower = searchTerm.toLowerCase();
+                filtered = filtered.filter(invoice => {
+                    if (currentView === 'sales') {
+                        return invoice.customerName.toLowerCase().includes(searchLower) ||
+                               invoice.details.some(detail => 
+                                   detail.productNumber.toLowerCase().includes(searchLower) ||
+                                   detail.productName.toLowerCase().includes(searchLower)
+                               );
+                    } else {
+                        return invoice.supplierName.toLowerCase().includes(searchLower);
+                    }
+                });
+            }
+
+            if (dateRange.start) {
+                filtered = filtered.filter(invoice => 
+                    (currentView === 'sales' ? invoice.invoiceDate : invoice.date) >= dateRange.start
+                );
+            }
+            if (dateRange.end) {
+                filtered = filtered.filter(invoice => 
+                    (currentView === 'sales' ? invoice.invoiceDate : invoice.date) <= dateRange.end
+                );
+            }
+
+            return filtered;
+        };
+
+        // Components
+        const createIcon = (iconName, className = 'w-4 h-4') => {
+            const icon = document.createElement('i');
+            icon.setAttribute('data-lucide', iconName);
+            icon.className = className;
+            return icon;
+        };
+
+        const createButton = (text, onClick, className = '', iconName = null) => {
+            const button = document.createElement('button');
+            button.className = `btn inline-flex items-center px-3 py-1.5 border border-transparent rounded shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 ${className}`;
+            
+            if (iconName) {
+                const icon = createIcon(iconName, 'w-4 h-4 mr-1');
+                button.appendChild(icon);
+            }
+            
+            const span = document.createElement('span');
+            span.textContent = text;
+            button.appendChild(span);
+            
+            button.addEventListener('click', onClick);
+            return button;
+        };
+
+        const createNavigation = () => {
+            const nav = document.createElement('nav');
+            nav.className = 'bg-gradient-to-r from-gray-900 to-gray-800 border-b border-gray-700';
+            
+            nav.innerHTML = `
+                <div class="max-w-7xl mx-auto px-4">
+                    <div class="flex h-24 items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 flex items-center">
+                                <i data-lucide="scroll-text" class="h-10 w-10 text-white"></i>
+                                <div class="ml-4">
+                                    <h1 class="text-2xl font-bold text-white">Entry Core Billing</h1>
+                                    <span class="text-base text-gray-400">伝票管理台帳</span>
+                                </div>
+                            </div>
+                            <div class="ml-16 flex space-x-2">
+                                <button id="sales-nav" class="nav-link inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md ${currentView === 'sales' ? 'active bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}">
+                                    <i data-lucide="file-text" class="w-5 h-5 mr-2"></i>
+                                    売上伝票
+                                </button>
+                                <button id="purchases-nav" class="nav-link inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md ${currentView === 'purchases' ? 'active green bg-green-600 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}">
+                                    <i data-lucide="shopping-cart" class="w-5 h-5 mr-2"></i>
+                                    仕入伝票
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="text-base text-gray-400 mr-6">
+                                最終更新: ${new Date().toLocaleDateString('ja-JP')}
+                            </div>
+                            <button id="profile-btn" class="flex items-center gap-2 px-3 py-2 text-base font-medium text-white hover:bg-gray-700 rounded-md transition-colors">
+                                <i data-lucide="user-circle-2" class="w-6 h-6"></i>
+                                <span>山田 太郎</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Add event listeners
+            nav.querySelector('#sales-nav').addEventListener('click', () => switchView('sales'));
+            nav.querySelector('#purchases-nav').addEventListener('click', () => switchView('purchases'));
+            nav.querySelector('#profile-btn').addEventListener('click', () => toggleProfileModal());
+
+            return nav;
+        };
+
+        const createSearchFilters = () => {
+            const filters = document.createElement('div');
+            filters.className = 'bg-white shadow rounded-lg';
+            
+            const colorClass = currentView === 'sales' ? 'blue' : 'green';
+            
+            filters.innerHTML = `
+                <div class="p-4">
+                    <div class="space-y-3">
+                        <div class="flex gap-3">
+                            <div class="w-1/2 flex gap-2">
+                                <div class="relative flex-1">
+                                    <input
+                                        type="text"
+                                        id="search-input"
+                                        class="search-input block w-full px-2 py-1.5 pl-8 text-sm border border-${colorClass}-100 focus:ring-${colorClass}-500 focus:border-${colorClass}-500 rounded shadow-sm transition duration-150 ease-in-out hover:border-${colorClass}-200"
+                                        placeholder="${currentView === 'sales' ? '得意先名、製番で検索' : '仕入先名で検索'}"
+                                        value="${searchTerm}"
+                                    />
+                                    <i data-lucide="${currentView === 'sales' ? 'file-text' : 'shopping-cart'}" class="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"></i>
+                                </div>
+                                <button id="clear-btn" class="btn inline-flex items-center px-3 py-1.5 border border-transparent rounded shadow-sm text-sm font-medium text-white bg-red-400 hover:bg-red-500 focus:ring-red-400">
+                                    <i data-lucide="x" class="w-4 h-4 mr-1"></i>
+                                    クリア
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex gap-3">
+                            <div class="flex items-center gap-2">
+                                <input
+                                    type="date"
+                                    id="date-start"
+                                    class="block w-full px-2 py-1.5 text-sm border border-${colorClass}-100 focus:ring-${colorClass}-500 focus:border-${colorClass}-500 rounded shadow-sm transition duration-150 ease-in-out hover:border-${colorClass}-200"
+                                    value="${dateRange.start}"
+                                />
+                                <span class="text-gray-500">～</span>
+                                <input
+                                    type="date"
+                                    id="date-end"
+                                    class="block w-full px-2 py-1.5 text-sm border border-${colorClass}-100 focus:ring-${colorClass}-500 focus:border-${colorClass}-500 rounded shadow-sm transition duration-150 ease-in-out hover:border-${colorClass}-200"
+                                    value="${dateRange.end}"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Add event listeners
+            filters.querySelector('#search-input').addEventListener('input', (e) => {
+                searchTerm = e.target.value;
+                currentPage = 1;
+                renderInvoiceTable();
+            });
+
+            filters.querySelector('#clear-btn').addEventListener('click', () => {
+                searchTerm = '';
+                dateRange = { start: '', end: '' };
+                currentPage = 1;
+                filters.querySelector('#search-input').value = '';
+                filters.querySelector('#date-start').value = '';
+                filters.querySelector('#date-end').value = '';
+                renderInvoiceTable();
+            });
+
+            filters.querySelector('#date-start').addEventListener('change', (e) => {
+                dateRange.start = e.target.value;
+                currentPage = 1;
+                renderInvoiceTable();
+            });
+
+            filters.querySelector('#date-end').addEventListener('change', (e) => {
+                dateRange.end = e.target.value;
+                currentPage = 1;
+                renderInvoiceTable();
+            });
+
+            return filters;
+        };
+
+        const createInvoiceTable = () => {
+            const invoices = currentView === 'sales' ? mockSalesInvoices : mockPurchaseInvoices;
+            const filteredInvoices = filterInvoices(invoices);
+            const totalPages = Math.ceil(filteredInvoices.length / rowsPerPage);
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const endIndex = startIndex + rowsPerPage;
+            const currentInvoices = filteredInvoices.slice(startIndex, endIndex);
+
+            const container = document.createElement('div');
+            container.className = 'border-t border-gray-200';
+
+            const colorClass = currentView === 'sales' ? 'blue' : 'green';
+
+            container.innerHTML = `
+                <div class="p-3 flex justify-between items-center bg-gray-50 border-b border-gray-200">
+                    <select id="rows-per-page" class="pl-2 pr-8 py-1.5 text-sm border border-gray-300 rounded shadow-sm focus:ring-${colorClass}-500 focus:border-${colorClass}-500">
+                        <option value="10" ${rowsPerPage === 10 ? 'selected' : ''}>10件</option>
+                        <option value="20" ${rowsPerPage === 20 ? 'selected' : ''}>20件</option>
+                        <option value="50" ${rowsPerPage === 50 ? 'selected' : ''}>50件</option>
+                    </select>
+                    <button id="export-csv" class="btn inline-flex items-center px-3 py-1.5 border border-gray-300 rounded shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        <i data-lucide="download" class="w-4 h-4 mr-1"></i>
+                        CSV
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                ${currentView === 'sales' ? `
+                                    <th class="w-[100px] px-3 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">請求番号</th>
+                                    <th class="w-[300px] px-3 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">得意先</th>
+                                    <th class="w-[100px] px-3 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">請求日</th>
+                                ` : `
+                                    <th class="w-[300px] px-3 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">仕入先</th>
+                                    <th class="w-[100px] px-3 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">日付</th>
+                                `}
+                                <th class="w-[80px] px-3 py-3 text-center text-xs font-medium text-gray-500 tracking-wider">明細数</th>
+                                <th class="w-[120px] px-3 py-3 text-right text-xs font-medium text-gray-500 tracking-wider">合計金額</th>
+                                <th class="w-[120px] px-3 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">担当者</th>
+                                <th class="w-[160px] px-3 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">部門</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200" id="invoice-tbody">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="pagination-container"></div>
+            `;
+
+            // Add event listeners
+            container.querySelector('#rows-per-page').addEventListener('change', (e) => {
+                rowsPerPage = Number(e.target.value);
+                currentPage = 1;
+                renderInvoiceTable();
+            });
+
+            container.querySelector('#export-csv').addEventListener('click', () => {
+                alert('CSV出力機能（デモ版では実装されていません）');
+            });
+
+            // Populate table body
+            const tbody = container.querySelector('#invoice-tbody');
+            currentInvoices.forEach(invoice => {
+                const row = document.createElement('tr');
+                row.className = 'table-row hover:bg-gray-50 cursor-pointer';
+                
+                if (currentView === 'sales') {
+                    row.innerHTML = `
+                        <td class="w-[100px] px-3 py-3 whitespace-nowrap text-sm">
+                            <div class="flex items-center text-${colorClass}-600">
+                                <i data-lucide="file-text" class="w-4 h-4 mr-1"></i>
+                                ${invoice.invoiceNumber}
+                            </div>
+                        </td>
+                        <td class="w-[300px] px-3 py-3 whitespace-nowrap text-sm">
+                            <div class="font-medium">${invoice.customerName}</div>
+                        </td>
+                        <td class="w-[100px] px-3 py-3 whitespace-nowrap text-sm font-mono">
+                            ${formatDate(invoice.invoiceDate)}
+                        </td>
+                        <td class="w-[80px] px-3 py-3 whitespace-nowrap text-sm text-center">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-${colorClass}-100 text-${colorClass}-800">
+                                ${invoice.details.length}件
+                            </span>
+                        </td>
+                        <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm font-mono text-right">
+                            ${formatCurrency(invoice.totalAmount)}
+                        </td>
+                        <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm">
+                            ${invoice.employee}
+                        </td>
+                        <td class="w-[160px] px-3 py-3 whitespace-nowrap text-sm">
+                            ${invoice.department}
+                        </td>
+                    `;
+                } else {
+                    row.innerHTML = `
+                        <td class="w-[300px] px-3 py-3 whitespace-nowrap text-sm">
+                            <div class="font-medium">${invoice.supplierName}</div>
+                        </td>
+                        <td class="w-[100px] px-3 py-3 whitespace-nowrap text-sm font-mono">
+                            ${formatDate(invoice.date)}
+                        </td>
+                        <td class="w-[80px] px-3 py-3 whitespace-nowrap text-sm text-center">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-${colorClass}-100 text-${colorClass}-800">
+                                ${invoice.details.length}件
+                            </span>
+                        </td>
+                        <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm font-mono text-right">
+                            ${formatCurrency(invoice.totalAmount)}
+                        </td>
+                        <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm">
+                            ${invoice.employee}
+                        </td>
+                        <td class="w-[160px] px-3 py-3 whitespace-nowrap text-sm">
+                            ${invoice.department}
+                        </td>
+                    `;
+                }
+
+                row.addEventListener('click', () => {
+                    alert(`${currentView === 'sales' ? '売上' : '仕入'}伝票詳細: ${invoice.id}`);
+                });
+
+                tbody.appendChild(row);
+            });
+
+            // Create pagination
+            const paginationContainer = container.querySelector('#pagination-container');
+            if (totalPages > 1) {
+                const pagination = createPagination(currentPage, totalPages);
+                paginationContainer.appendChild(pagination);
+            }
+
+            return container;
+        };
+
+        const createPagination = (current, total) => {
+            const pagination = document.createElement('div');
+            pagination.className = 'flex items-center justify-between border-t border-gray-200 bg-white px-3 py-2';
+
+            pagination.innerHTML = `
+                <div class="flex flex-1 justify-between sm:hidden">
+                    <button id="prev-mobile" class="relative inline-flex items-center rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50" ${current === 1 ? 'disabled' : ''}>
+                        前へ
+                    </button>
+                    <button id="next-mobile" class="relative ml-3 inline-flex items-center rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50" ${current === total ? 'disabled' : ''}>
+                        次へ
+                    </button>
+                </div>
+                <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-sm text-gray-700">
+                            全<span class="font-medium">${total}</span>ページ中
+                            <span class="font-medium">${current}</span>ページ目を表示
+                        </p>
+                    </div>
+                    <div>
+                        <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm">
+                            <button id="prev-desktop" class="relative inline-flex items-center rounded-l-md px-2 py-1.5 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50" ${current === 1 ? 'disabled' : ''}>
+                                <i data-lucide="chevron-left" class="h-4 w-4"></i>
+                            </button>
+                            <div id="page-numbers" class="flex">
+                            </div>
+                            <button id="next-desktop" class="relative inline-flex items-center rounded-r-md px-2 py-1.5 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50" ${current === total ? 'disabled' : ''}>
+                                <i data-lucide="chevron-right" class="h-4 w-4"></i>
+                            </button>
+                        </nav>
+                    </div>
+                </div>
+            `;
+
+            // Add page numbers
+            const pageNumbers = pagination.querySelector('#page-numbers');
+            for (let i = 1; i <= total; i++) {
+                if (total <= 7 || i === 1 || i === total || (i >= current - 1 && i <= current + 1)) {
+                    const pageBtn = document.createElement('button');
+                    pageBtn.className = `relative inline-flex items-center px-3 py-1.5 text-sm font-medium ${
+                        i === current
+                            ? 'z-10 bg-blue-600 text-white focus:z-20'
+                            : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50'
+                    }`;
+                    pageBtn.textContent = i;
+                    pageBtn.addEventListener('click', () => {
+                        currentPage = i;
+                        renderInvoiceTable();
+                    });
+                    pageNumbers.appendChild(pageBtn);
+                }
+            }
+
+            // Add event listeners for navigation buttons
+            pagination.querySelector('#prev-mobile')?.addEventListener('click', () => {
+                if (current > 1) {
+                    currentPage = current - 1;
+                    renderInvoiceTable();
+                }
+            });
+
+            pagination.querySelector('#next-mobile')?.addEventListener('click', () => {
+                if (current < total) {
+                    currentPage = current + 1;
+                    renderInvoiceTable();
+                }
+            });
+
+            pagination.querySelector('#prev-desktop')?.addEventListener('click', () => {
+                if (current > 1) {
+                    currentPage = current - 1;
+                    renderInvoiceTable();
+                }
+            });
+
+            pagination.querySelector('#next-desktop')?.addEventListener('click', () => {
+                if (current < total) {
+                    currentPage = current + 1;
+                    renderInvoiceTable();
+                }
+            });
+
+            return pagination;
+        };
+
+        const createSummaryPanel = () => {
+            const invoices = currentView === 'sales' ? mockSalesInvoices : mockPurchaseInvoices;
+            const totalAmount = invoices.reduce((sum, invoice) => sum + invoice.totalAmount, 0);
+            const averageAmount = invoices.length > 0 ? totalAmount / invoices.length : 0;
+            const entityCount = new Set(invoices.map(invoice => 
+                currentView === 'sales' ? invoice.customerCode : invoice.supplierCode
+            )).size;
+
+            const colorClass = currentView === 'sales' ? 'blue' : 'green';
+            const entityName = currentView === 'sales' ? '得意先' : '仕入先';
+
+            const panel = document.createElement('div');
+            panel.className = 'w-[320px] min-w-[320px]';
+
+            panel.innerHTML = `
+                <div class="bg-white p-6 rounded-lg shadow-lg space-y-6 card">
+                    <div>
+                        <h4 class="text-lg font-medium text-gray-900 mb-4">月次推移</h4>
+                        <div class="h-[200px] w-full bg-gray-50 rounded-lg flex items-center justify-center">
+                            <span class="text-gray-500">グラフ表示エリア</span>
+                        </div>
+                    </div>
+
+                    <div class="border-t pt-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">集計情報</h3>
+                            <select class="w-24 text-sm border-2 border-${colorClass}-100 rounded-lg px-2 py-2">
+                                <option>全期間</option>
+                                <option>月別</option>
+                                <option>年別</option>
+                            </select>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-4 bg-${colorClass}-50 rounded-lg">
+                                <div class="flex items-center text-${colorClass}-700">
+                                    <i data-lucide="trending-up" class="w-5 h-5 mr-2"></i>
+                                    <span>合計金額</span>
+                                </div>
+                                <span class="font-medium text-lg">${formatCurrency(totalAmount)}</span>
+                            </div>
+                            <div class="flex items-center justify-between p-4 bg-${colorClass === 'blue' ? 'indigo' : 'emerald'}-50 rounded-lg">
+                                <div class="flex items-center text-${colorClass === 'blue' ? 'indigo' : 'emerald'}-700">
+                                    <i data-lucide="trending-up" class="w-5 h-5 mr-2"></i>
+                                    <span>平均金額</span>
+                                </div>
+                                <span class="font-medium text-lg">${formatCurrency(Math.round(averageAmount))}</span>
+                            </div>
+                            <div class="flex items-center justify-between p-4 bg-${colorClass === 'blue' ? 'purple' : 'teal'}-50 rounded-lg">
+                                <div class="flex items-center text-${colorClass === 'blue' ? 'purple' : 'teal'}-700">
+                                    <i data-lucide="users" class="w-5 h-5 mr-2"></i>
+                                    <span>${entityName}数</span>
+                                </div>
+                                <span class="font-medium text-lg">${entityCount}社</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-t pt-6">
+                        <h4 class="text-lg font-medium text-gray-900 mb-4">${entityName}別金額トップ3</h4>
+                        <div class="space-y-3">
+                            ${getTopEntities().map((entity, index) => `
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div class="flex items-center">
+                                        <span class="w-6 text-sm font-medium text-gray-500">${index + 1}.</span>
+                                        <span class="text-sm font-medium truncate" style="max-width: 150px;">
+                                            ${entity.name}
+                                        </span>
+                                    </div>
+                                    <span class="text-sm font-medium">${formatCurrency(entity.amount)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            return panel;
+        };
+
+        const getTopEntities = () => {
+            const invoices = currentView === 'sales' ? mockSalesInvoices : mockPurchaseInvoices;
+            const entityTotals = invoices.reduce((acc, invoice) => {
+                const entityName = currentView === 'sales' ? invoice.customerName : invoice.supplierName;
+                acc[entityName] = (acc[entityName] || 0) + invoice.totalAmount;
+                return acc;
+            }, {});
+
+            return Object.entries(entityTotals)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 3)
+                .map(([name, amount]) => ({ name, amount }));
+        };
+
+        const createProfileModal = () => {
+            const modal = document.createElement('div');
+            modal.id = 'profile-modal';
+            modal.className = `fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50 ${isProfileModalOpen ? '' : 'hidden'}`;
+
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 fade-in">
+                    <div class="relative">
+                        <div class="h-32 bg-gradient-to-r from-blue-600 to-blue-800 rounded-t-lg"></div>
+                        
+                        <button id="close-profile" class="absolute top-4 right-4 text-white hover:text-gray-200 transition-colors">
+                            <i data-lucide="x" class="h-6 w-6"></i>
+                        </button>
+
+                        <div class="absolute left-6 -bottom-12">
+                            <div class="relative">
+                                <img
+                                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+                                    alt="Profile"
+                                    class="w-24 h-24 rounded-full border-4 border-white shadow-lg"
+                                />
+                                <button class="absolute bottom-0 right-0 bg-blue-600 p-1.5 rounded-full text-white hover:bg-blue-700 transition-colors">
+                                    <i data-lucide="camera" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="px-6 pt-16 pb-6">
+                        <div class="space-y-6">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-900">山田 太郎</h2>
+                                <p class="text-sm text-gray-500">システム管理者</p>
+                            </div>
+
+                            <div class="space-y-4">
+                                <div class="flex items-center text-gray-700">
+                                    <i data-lucide="mail" class="w-5 h-5 mr-3 text-gray-400"></i>
+                                    <span>yamada.taro@example.com</span>
+                                </div>
+                                <div class="flex items-center text-gray-700">
+                                    <i data-lucide="building-2" class="w-5 h-5 mr-3 text-gray-400"></i>
+                                    <span>東京事業所</span>
+                                </div>
+                                <div class="flex items-center text-gray-700">
+                                    <i data-lucide="phone" class="w-5 h-5 mr-3 text-gray-400"></i>
+                                    <span>03-1234-5678</span>
+                                </div>
+                            </div>
+
+                            <div class="pt-6 border-t">
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">アカウント設定</h3>
+                                <div class="space-y-3">
+                                    <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+                                        プロフィール編集
+                                    </button>
+                                    <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+                                        パスワード変更
+                                    </button>
+                                    <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+                                        通知設定
+                                    </button>
+                                    <button class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                        ログアウト
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    toggleProfileModal();
+                }
+            });
+
+            modal.querySelector('#close-profile').addEventListener('click', toggleProfileModal);
+
+            return modal;
+        };
+
+        // Main render functions
+        const renderInvoiceTable = () => {
+            const tableContainer = document.querySelector('#table-container');
+            if (tableContainer) {
+                const newTable = createInvoiceTable();
+                tableContainer.innerHTML = '';
+                tableContainer.appendChild(newTable);
+                lucide.createIcons();
+            }
+        };
+
+        const renderMainContent = () => {
+            const main = document.querySelector('main');
+            const colorClass = currentView === 'sales' ? 'blue' : 'green';
+            const iconName = currentView === 'sales' ? 'file-text' : 'shopping-cart';
+            const title = currentView === 'sales' ? '売上伝票一覧' : '仕入伝票一覧';
+
+            main.innerHTML = `
+                <div class="flex gap-6">
+                    <div class="flex-1">
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <i data-lucide="${iconName}" class="h-8 w-8 text-${colorClass}-600 mr-3"></i>
+                                    <h2 class="text-2xl font-bold text-gray-900">${title}</h2>
+                                </div>
+                                <button class="btn inline-flex items-center px-3 py-1.5 border border-transparent rounded shadow-sm text-sm font-medium text-white bg-${colorClass}-600 hover:bg-${colorClass}-700">
+                                    <i data-lucide="plus" class="w-4 h-4 mr-1"></i>
+                                    新規作成
+                                </button>
+                            </div>
+                            <div id="filters-container"></div>
+                            <div id="table-container"></div>
+                        </div>
+                    </div>
+                    <div id="summary-container"></div>
+                </div>
+            `;
+
+            // Render components
+            const filtersContainer = main.querySelector('#filters-container');
+            filtersContainer.appendChild(createSearchFilters());
+
+            const tableContainer = main.querySelector('#table-container');
+            tableContainer.appendChild(createInvoiceTable());
+
+            const summaryContainer = main.querySelector('#summary-container');
+            summaryContainer.appendChild(createSummaryPanel());
+
+            lucide.createIcons();
+        };
+
+        const switchView = (view) => {
+            currentView = view;
+            currentPage = 1;
+            searchTerm = '';
+            dateRange = { start: '', end: '' };
+
+            // Update navigation
+            const salesNav = document.querySelector('#sales-nav');
+            const purchasesNav = document.querySelector('#purchases-nav');
+
+            if (view === 'sales') {
+                salesNav.className = 'nav-link active inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md bg-blue-600 text-white';
+                purchasesNav.className = 'nav-link inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white';
+            } else {
+                salesNav.className = 'nav-link inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white';
+                purchasesNav.className = 'nav-link active green inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md bg-green-600 text-white';
+            }
+
+            renderMainContent();
+        };
+
+        const toggleProfileModal = () => {
+            isProfileModalOpen = !isProfileModalOpen;
+            const modal = document.querySelector('#profile-modal');
+            if (modal) {
+                modal.className = `fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50 ${isProfileModalOpen ? '' : 'hidden'}`;
+            }
+        };
+
+        // Initialize application
+        const init = () => {
+            const app = document.querySelector('#app');
+            
+            app.innerHTML = `
+                <div class="min-h-screen bg-gray-50">
+                    <div id="navigation"></div>
+                    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8"></main>
+                    <div id="modal-container"></div>
+                </div>
+            `;
+
+            // Render navigation
+            const navigation = app.querySelector('#navigation');
+            navigation.appendChild(createNavigation());
+
+            // Render main content
+            renderMainContent();
+
+            // Render modals
+            const modalContainer = app.querySelector('#modal-container');
+            modalContainer.appendChild(createProfileModal());
+
+            // Initialize Lucide icons
+            lucide.createIcons();
+        };
+
+        // Start the application
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
