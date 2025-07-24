@@ -646,8 +646,8 @@
                 <div class="bg-white p-6 rounded-lg shadow-lg space-y-6 card">
                     <div>
                         <h4 class="text-lg font-medium text-gray-900 mb-4">月次推移</h4>
-                        <div class="h-[200px] w-full bg-gray-50 rounded-lg flex items-center justify-center">
-                            <span class="text-gray-500">グラフ表示エリア</span>
+                        <div class="h-[200px] w-full">
+                            <canvas id="monthly-chart-${currentView}" width="280" height="200"></canvas>
                         </div>
                     </div>
 
@@ -705,7 +705,85 @@
                 </div>
             `;
 
+            // Create chart after DOM is updated
+            setTimeout(() => {
+                createMonthlyChart(currentView);
+            }, 100);
+
             return panel;
+        };
+
+        const createMonthlyChart = (viewType) => {
+            const canvas = document.getElementById(`monthly-chart-${viewType}`);
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            
+            // Generate monthly data for the last 6 months
+            const monthlyData = [];
+            const now = new Date();
+            const invoices = viewType === 'sales' ? mockSalesInvoices : mockPurchaseInvoices;
+            
+            for (let i = 5; i >= 0; i--) {
+                const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const monthStr = date.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit' });
+                
+                const monthlyInvoices = invoices.filter(invoice => {
+                    const invoiceDate = new Date(viewType === 'sales' ? invoice.invoiceDate : invoice.date);
+                    return invoiceDate.getFullYear() === date.getFullYear() && 
+                           invoiceDate.getMonth() === date.getMonth();
+                });
+                
+                const amount = monthlyInvoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
+                monthlyData.push({ month: monthStr, amount });
+            }
+
+            const color = viewType === 'sales' ? '#3B82F6' : '#10B981';
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: monthlyData.map(d => d.month),
+                    datasets: [{
+                        label: '金額',
+                        data: monthlyData.map(d => d.amount),
+                        borderColor: color,
+                        backgroundColor: color + '20',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '¥' + (value / 10000).toFixed(0) + '万';
+                                },
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         };
 
         const getTopEntities = () => {
