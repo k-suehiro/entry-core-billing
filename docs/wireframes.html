@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entry Core Billing - ワイヤーフレーム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .wireframe-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .wireframe-section {
+            background: white;
+            margin-bottom: 40px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .wireframe-title {
+            background: #333;
+            color: white;
+            padding: 15px 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .wireframe-content {
+            padding: 20px;
+        }
+        
+        /* 共通レイアウト要素 */
+        .header {
+            height: 80px;
+            background: #666;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            margin-bottom: 20px;
+        }
+        
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: #999;
+            border-radius: 4px;
+        }
+        
+        .logo-text {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .nav-menu {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .nav-item {
+            padding: 8px 16px;
+            background: #555;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .nav-item.active {
+            background: #007bff;
+        }
+        
+        .nav-item.green.active {
+            background: #28a745;
+        }
+        
+        .user-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .user-icon {
+            width: 32px;
+            height: 32px;
+            background: #999;
+            border-radius: 50%;
+        }
+        
+        /* メインコンテンツエリア */
+        .main-content {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .content-left {
+            flex: 1;
+        }
+        
+        .content-right {
+            width: 320px;
+            flex-shrink: 0;
+        }
+        
+        /* ページヘッダー */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .page-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .page-icon {
+            width: 32px;
+            height: 32px;
+            background: #007bff;
+            border-radius: 4px;
+        }
+        
+        .page-icon.green {
+            background: #28a745;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+        
+        /* 検索・フィルターエリア */
+        .search-filter {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .search-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .search-input {
+            flex: 1;
+            height: 36px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 0 10px;
+        }
+        
+        .date-range {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .date-input {
+            width: 140px;
+            height: 36px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 0 10px;
+        }
+        
+        /* テーブル */
+        .table-container {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .table-header {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table th,
+        .table td {
+            padding: 12px 8px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .table th {
+            background: #f8f9fa;
+            font-weight: bold;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .table td {
+            font-size: 14px;
+        }
+        
+        .table-row {
+            background: #f9f9f9;
+            height: 40px;
+        }
+        
+        /* ページネーション */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: #f8f9fa;
+            border-top: 1px solid #ddd;
+        }
+        
+        .pagination-info {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .pagination-controls {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .page-btn {
+            width: 32px;
+            height: 32px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        .page-btn.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        
+        /* 集計パネル */
+        .summary-panel {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 20px;
+        }
+        
+        .chart-area {
+            height: 200px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+        }
+        
+        .summary-stats {
+            margin-bottom: 20px;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .stat-value {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .top-list {
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+        
+        .top-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            margin-bottom: 6px;
+        }
+        
+        /* フォーム画面 */
+        .form-section {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .form-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #ddd;
+            font-weight: bold;
+        }
+        
+        .form-content {
+            padding: 20px;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group.col-2 {
+            grid-column: span 2;
+        }
+        
+        .form-group.col-4 {
+            grid-column: span 4;
+        }
+        
+        .form-group.col-6 {
+            grid-column: span 6;
+        }
+        
+        .form-group.col-8 {
+            grid-column: span 8;
+        }
+        
+        .form-label {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        .form-label.required::after {
+            content: " *";
+            color: red;
+        }
+        
+        .form-input {
+            height: 36px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 0 10px;
+            font-size: 14px;
+        }
+        
+        .form-input.readonly {
+            background: #f8f9fa;
+            color: #666;
+        }
+        
+        /* 明細テーブル */
+        .detail-section {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .detail-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .detail-table th,
+        .detail-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            font-size: 12px;
+        }
+        
+        .detail-table th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #666;
+        }
+        
+        .detail-row {
+            background: #f9f9f9;
+            height: 36px;
+        }
+        
+        .detail-actions {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+        
+        .action-icon {
+            width: 20px;
+            height: 20px;
+            background: #ddd;
+            border-radius: 2px;
+        }
+        
+        .total-row {
+            background: #f8f9fa;
+            font-weight: bold;
+        }
+        
+        /* レスポンシブ */
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .content-right {
+                width: 100%;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-group.col-2,
+            .form-group.col-4,
+            .form-group.col-6,
+            .form-group.col-8 {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wireframe-container">
+        <h1 style="text-align: center; margin-bottom: 30px; font-size: 28px;">Entry Core Billing - ワイヤーフレーム</h1>
+        
+        <!-- 1. 売上伝票一覧画面 -->
+        <div class="wireframe-section">
+            <div class="wireframe-title">1. 売上伝票一覧画面</div>
+            <div class="wireframe-content">
+                <!-- ヘッダー -->
+                <div class="header">
+                    <div class="logo-area">
+                        <div class="logo-icon"></div>
+                        <div>
+                            <div class="logo-text">Entry Core Billing</div>
+                            <div style="font-size: 14px; color: #ccc;">伝票管理台帳</div>
+                        </div>
+                    </div>
+                    <div class="nav-menu">
+                        <div class="nav-item active">売上伝票</div>
+                        <div class="nav-item">仕入伝票</div>
+                    </div>
+                    <div class="user-area">
+                        <div style="font-size: 14px;">最終更新: 2025/01/15</div>
+                        <div class="user-icon"></div>
+                        <div>山田 太郎</div>
+                    </div>
+                </div>
+                
+                <!-- メインコンテンツ -->
+                <div class="main-content">
+                    <div class="content-left">
+                        <!-- ページヘッダー -->
+                        <div class="page-header">
+                            <div class="page-title">
+                                <div class="page-icon"></div>
+                                <span>売上伝票一覧</span>
+                            </div>
+                            <div class="action-buttons">
+                                <button class="btn btn-primary">+ 新規作成</button>
+                            </div>
+                        </div>
+                        
+                        <!-- 検索・フィルター -->
+                        <div class="search-filter">
+                            <div class="search-row">
+                                <input type="text" class="search-input" placeholder="得意先名、製番で検索">
+                                <button class="btn">クリア</button>
+                            </div>
+                            <div class="date-range">
+                                <input type="date" class="date-input">
+                                <span>～</span>
+                                <input type="date" class="date-input">
+                            </div>
+                        </div>
+                        
+                        <!-- テーブル -->
+                        <div class="table-container">
+                            <div class="table-header">
+                                <select>
+                                    <option>10件</option>
+                                    <option>20件</option>
+                                    <option>50件</option>
+                                </select>
+                                <button class="btn">CSV</button>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 100px;">請求番号</th>
+                                        <th style="width: 300px;">得意先</th>
+                                        <th style="width: 100px;">請求日</th>
+                                        <th style="width: 80px;">明細数</th>
+                                        <th style="width: 120px;">合計金額</th>
+                                        <th style="width: 120px;">担当者</th>
+                                        <th style="width: 160px;">部門</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="table-row"><td colspan="7"></td></tr>
+                                    <tr class="table-row"><td colspan="7"></td></tr>
+                                    <tr class="table-row"><td colspan="7"></td></tr>
+                                    <tr class="table-row"><td colspan="7"></td></tr>
+                                    <tr class="table-row"><td colspan="7"></td></tr>
+                                </tbody>
+                            </table>
+                            <div class="pagination">
+                                <div class="pagination-info">全5ページ中1ページ目を表示</div>
+                                <div class="pagination-controls">
+                                    <div class="page-btn">‹</div>
+                                    <div class="page-btn active">1</div>
+                                    <div class="page-btn">2</div>
+                                    <div class="page-btn">3</div>
+                                    <div class="page-btn">›</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 集計パネル -->
+                    <div class="content-right">
+                        <div class="summary-panel">
+                            <h4 style="margin-bottom: 15px;">月次推移</h4>
+                            <div class="chart-area">グラフ表示エリア</div>
+                            
+                            <div class="summary-stats">
+                                <h4 style="margin-bottom: 15px;">集計情報</h4>
+                                <div class="stat-item">
+                                    <span class="stat-label">合計金額</span>
+                                    <span class="stat-value">¥12,345,678</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">平均金額</span>
+                                    <span class="stat-value">¥234,567</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">得意先数</span>
+                                    <span class="stat-value">15社</span>
+                                </div>
+                            </div>
+                            
+                            <div class="top-list">
+                                <h4 style="margin-bottom: 15px;">得意先別金額トップ3</h4>
+                                <div class="top-item">
+                                    <span>1. トヨタ自動車株式会社</span>
+                                    <span>¥3,456,789</span>
+                                </div>
+                                <div class="top-item">
+                                    <span>2. 本田技研工業株式会社</span>
+                                    <span>¥2,345,678</span>
+                                </div>
+                                <div class="top-item">
+                                    <span>3. 日産自動車株式会社</span>
+                                    <span>¥1,234,567</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 2. 売上伝票登録・編集画面 -->
+        <div class="wireframe-section">
+            <div class="wireframe-title">2. 売上伝票登録・編集画面</div>
+            <div class="wireframe-content">
+                <!-- ヘッダー -->
+                <div class="header">
+                    <div class="logo-area">
+                        <div class="logo-icon"></div>
+                        <div>
+                            <div class="logo-text">Entry Core Billing</div>
+                            <div style="font-size: 14px; color: #ccc;">伝票管理台帳</div>
+                        </div>
+                    </div>
+                    <div class="nav-menu">
+                        <div class="nav-item active">売上伝票</div>
+                        <div class="nav-item">仕入伝票</div>
+                    </div>
+                    <div class="user-area">
+                        <div style="font-size: 14px;">最終更新: 2025/01/15</div>
+                        <div class="user-icon"></div>
+                        <div>山田 太郎</div>
+                    </div>
+                </div>
+                
+                <!-- ページヘッダー -->
+                <div class="page-header">
+                    <div class="page-title">
+                        <div class="page-icon"></div>
+                        <span>売上伝票登録</span>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn">← 戻る</button>
+                        <button class="btn btn-primary">編集</button>
+                    </div>
+                </div>
+                
+                <!-- 基本情報 -->
+                <div class="form-section">
+                    <div class="form-header">基本情報</div>
+                    <div class="form-content">
+                        <div class="form-grid">
+                            <div class="form-group col-2">
+                                <label class="form-label">請求番号</label>
+                                <input type="text" class="form-input readonly" value="(自動採番)" readonly>
+                            </div>
+                            <div class="form-group col-8">
+                                <label class="form-label required">得意先</label>
+                                <input type="text" class="form-input" placeholder="得意先を選択または検索">
+                            </div>
+                            <div class="form-group col-2">
+                                <label class="form-label">税区分</label>
+                                <input type="text" class="form-input readonly" value="課税" readonly>
+                            </div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group col-2">
+                                <label class="form-label required">請求日</label>
+                                <input type="date" class="form-input">
+                            </div>
+                            <div class="form-group col-6">
+                                <label class="form-label required">担当者</label>
+                                <input type="text" class="form-input" placeholder="担当者を選択">
+                            </div>
+                            <div class="form-group col-4">
+                                <label class="form-label">担当部門</label>
+                                <input type="text" class="form-input readonly" value="東京事業所" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 明細情報 -->
+                <div class="detail-section">
+                    <div class="detail-header">
+                        <span style="font-weight: bold;">明細情報</span>
+                        <button class="btn btn-primary">+ 明細追加</button>
+                    </div>
+                    <table class="detail-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 220px;">製番</th>
+                                <th>品名</th>
+                                <th style="width: 100px;">数量</th>
+                                <th style="width: 100px;">単価</th>
+                                <th style="width: 100px;">金額</th>
+                                <th style="width: 80px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="detail-row">
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td>
+                                    <div class="detail-actions">
+                                        <div class="action-icon"></div>
+                                        <div class="action-icon"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="detail-row">
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td>
+                                    <div class="detail-actions">
+                                        <div class="action-icon"></div>
+                                        <div class="action-icon"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="total-row">
+                                <td colspan="4" style="text-align: right;">合計金額</td>
+                                <td style="text-align: right;">¥123,456</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 3. 仕入伝票一覧画面 -->
+        <div class="wireframe-section">
+            <div class="wireframe-title">3. 仕入伝票一覧画面</div>
+            <div class="wireframe-content">
+                <!-- ヘッダー -->
+                <div class="header">
+                    <div class="logo-area">
+                        <div class="logo-icon"></div>
+                        <div>
+                            <div class="logo-text">Entry Core Billing</div>
+                            <div style="font-size: 14px; color: #ccc;">伝票管理台帳</div>
+                        </div>
+                    </div>
+                    <div class="nav-menu">
+                        <div class="nav-item">売上伝票</div>
+                        <div class="nav-item green active">仕入伝票</div>
+                    </div>
+                    <div class="user-area">
+                        <div style="font-size: 14px;">最終更新: 2025/01/15</div>
+                        <div class="user-icon"></div>
+                        <div>山田 太郎</div>
+                    </div>
+                </div>
+                
+                <!-- メインコンテンツ -->
+                <div class="main-content">
+                    <div class="content-left">
+                        <!-- ページヘッダー -->
+                        <div class="page-header">
+                            <div class="page-title">
+                                <div class="page-icon green"></div>
+                                <span>仕入伝票一覧</span>
+                            </div>
+                            <div class="action-buttons">
+                                <button class="btn btn-success">+ 新規作成</button>
+                            </div>
+                        </div>
+                        
+                        <!-- 検索・フィルター -->
+                        <div class="search-filter">
+                            <div class="search-row">
+                                <input type="text" class="search-input" placeholder="仕入先名で検索">
+                                <button class="btn">クリア</button>
+                            </div>
+                            <div class="date-range">
+                                <input type="date" class="date-input">
+                                <span>～</span>
+                                <input type="date" class="date-input">
+                            </div>
+                        </div>
+                        
+                        <!-- テーブル -->
+                        <div class="table-container">
+                            <div class="table-header">
+                                <select>
+                                    <option>10件</option>
+                                    <option>20件</option>
+                                    <option>50件</option>
+                                </select>
+                                <button class="btn">CSV</button>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 300px;">仕入先</th>
+                                        <th style="width: 100px;">日付</th>
+                                        <th style="width: 80px;">明細数</th>
+                                        <th style="width: 120px;">合計金額</th>
+                                        <th style="width: 120px;">担当者</th>
+                                        <th style="width: 160px;">部門</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="table-row"><td colspan="6"></td></tr>
+                                    <tr class="table-row"><td colspan="6"></td></tr>
+                                    <tr class="table-row"><td colspan="6"></td></tr>
+                                    <tr class="table-row"><td colspan="6"></td></tr>
+                                    <tr class="table-row"><td colspan="6"></td></tr>
+                                </tbody>
+                            </table>
+                            <div class="pagination">
+                                <div class="pagination-info">全3ページ中1ページ目を表示</div>
+                                <div class="pagination-controls">
+                                    <div class="page-btn">‹</div>
+                                    <div class="page-btn active">1</div>
+                                    <div class="page-btn">2</div>
+                                    <div class="page-btn">3</div>
+                                    <div class="page-btn">›</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 集計パネル（緑色テーマ） -->
+                    <div class="content-right">
+                        <div class="summary-panel">
+                            <h4 style="margin-bottom: 15px;">月次推移</h4>
+                            <div class="chart-area">グラフ表示エリア</div>
+                            
+                            <div class="summary-stats">
+                                <h4 style="margin-bottom: 15px;">集計情報</h4>
+                                <div class="stat-item">
+                                    <span class="stat-label">合計金額</span>
+                                    <span class="stat-value">¥8,765,432</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">平均金額</span>
+                                    <span class="stat-value">¥187,654</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">仕入先数</span>
+                                    <span class="stat-value">12社</span>
+                                </div>
+                            </div>
+                            
+                            <div class="top-list">
+                                <h4 style="margin-bottom: 15px;">仕入先別金額トップ3</h4>
+                                <div class="top-item">
+                                    <span>1. トウキョウメディアワークス</span>
+                                    <span>¥2,345,678</span>
+                                </div>
+                                <div class="top-item">
+                                    <span>2. オオサカコンテンツラボ</span>
+                                    <span>¥1,876,543</span>
+                                </div>
+                                <div class="top-item">
+                                    <span>3. 名古屋ドキュメントサービス</span>
+                                    <span>¥1,234,567</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 4. 仕入伝票登録・編集画面 -->
+        <div class="wireframe-section">
+            <div class="wireframe-title">4. 仕入伝票登録・編集画面</div>
+            <div class="wireframe-content">
+                <!-- ヘッダー -->
+                <div class="header">
+                    <div class="logo-area">
+                        <div class="logo-icon"></div>
+                        <div>
+                            <div class="logo-text">Entry Core Billing</div>
+                            <div style="font-size: 14px; color: #ccc;">伝票管理台帳</div>
+                        </div>
+                    </div>
+                    <div class="nav-menu">
+                        <div class="nav-item">売上伝票</div>
+                        <div class="nav-item green active">仕入伝票</div>
+                    </div>
+                    <div class="user-area">
+                        <div style="font-size: 14px;">最終更新: 2025/01/15</div>
+                        <div class="user-icon"></div>
+                        <div>山田 太郎</div>
+                    </div>
+                </div>
+                
+                <!-- ページヘッダー -->
+                <div class="page-header">
+                    <div class="page-title">
+                        <div class="page-icon green"></div>
+                        <span>仕入伝票登録</span>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn">← 戻る</button>
+                        <button class="btn btn-success">編集</button>
+                    </div>
+                </div>
+                
+                <!-- 基本情報 -->
+                <div class="form-section">
+                    <div class="form-header">基本情報</div>
+                    <div class="form-content">
+                        <div class="form-grid">
+                            <div class="form-group col-2">
+                                <label class="form-label required">発注番号</label>
+                                <input type="text" class="form-input" placeholder="1234567">
+                            </div>
+                            <div class="form-group col-8">
+                                <label class="form-label required">仕入先</label>
+                                <input type="text" class="form-input" placeholder="仕入先を選択または検索">
+                            </div>
+                            <div class="form-group col-2">
+                                <label class="form-label required">納品書番号</label>
+                                <input type="text" class="form-input" placeholder="DN-0000">
+                            </div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group col-2">
+                                <label class="form-label required">日付</label>
+                                <input type="date" class="form-input">
+                            </div>
+                            <div class="form-group col-6">
+                                <label class="form-label required">担当者</label>
+                                <input type="text" class="form-input" placeholder="担当者を選択">
+                            </div>
+                            <div class="form-group col-4">
+                                <label class="form-label">担当部門</label>
+                                <input type="text" class="form-input readonly" value="東京事業所" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 明細情報 -->
+                <div class="detail-section">
+                    <div class="detail-header">
+                        <span style="font-weight: bold;">明細情報</span>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn">CREPOS取得</button>
+                            <button class="btn btn-success">+ 明細追加</button>
+                        </div>
+                    </div>
+                    <table class="detail-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 100px;">製番</th>
+                                <th>品名</th>
+                                <th style="width: 150px;">作業コード</th>
+                                <th style="width: 100px;">数量</th>
+                                <th style="width: 100px;">単価</th>
+                                <th style="width: 100px;">金額</th>
+                                <th style="width: 80px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="detail-row">
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td>
+                                    <div class="detail-actions">
+                                        <div class="action-icon"></div>
+                                        <div class="action-icon"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="detail-row">
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td>
+                                    <div class="detail-actions">
+                                        <div class="action-icon"></div>
+                                        <div class="action-icon"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="total-row">
+                                <td colspan="5" style="text-align: right;">合計金額</td>
+                                <td style="text-align: right;">¥98,765</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 5. モバイル表示例 -->
+        <div class="wireframe-section">
+            <div class="wireframe-title">5. モバイル表示例（売上伝票一覧）</div>
+            <div class="wireframe-content">
+                <div style="max-width: 375px; margin: 0 auto; border: 2px solid #ddd; border-radius: 8px; overflow: hidden;">
+                    <!-- モバイルヘッダー -->
+                    <div style="height: 60px; background: #666; color: white; display: flex; align-items: center; justify-content: space-between; padding: 0 15px;">
+                        <div style="font-size: 16px; font-weight: bold;">Entry Core Billing</div>
+                        <div class="user-icon" style="width: 24px; height: 24px;"></div>
+                    </div>
+                    
+                    <!-- モバイルナビ -->
+                    <div style="display: flex; background: #f8f9fa; border-bottom: 1px solid #ddd;">
+                        <div style="flex: 1; padding: 10px; text-align: center; background: #007bff; color: white; font-size: 14px;">売上伝票</div>
+                        <div style="flex: 1; padding: 10px; text-align: center; font-size: 14px;">仕入伝票</div>
+                    </div>
+                    
+                    <!-- モバイルコンテンツ -->
+                    <div style="padding: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="font-size: 18px; margin: 0;">売上伝票一覧</h3>
+                            <button style="padding: 6px 12px; background: #007bff; color: white; border: none; border-radius: 4px; font-size: 12px;">+ 新規</button>
+                        </div>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <input type="text" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;" placeholder="検索">
+                        </div>
+                        
+                        <!-- モバイルカードリスト -->
+                        <div style="space-y: 10px;">
+                            <div style="background: white; border: 1px solid #ddd; border-radius: 4px; padding: 12px; margin-bottom: 10px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <span style="font-weight: bold; font-size: 14px;">SI000001</span>
+                                    <span style="background: #007bff; color: white; padding: 2px 6px; border-radius: 12px; font-size: 10px;">3件</span>
+                                </div>
+                                <div style="font-size: 13px; color: #666; margin-bottom: 4px;">トヨタ自動車株式会社</div>
+                                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #888;">
+                                    <span>2025/01/15</span>
+                                    <span style="font-weight: bold; color: #333;">¥123,456</span>
+                                </div>
+                            </div>
+                            
+                            <div style="background: white; border: 1px solid #ddd; border-radius: 4px; padding: 12px; margin-bottom: 10px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <span style="font-weight: bold; font-size: 14px;">SI000002</span>
+                                    <span style="background: #007bff; color: white; padding: 2px 6px; border-radius: 12px; font-size: 10px;">2件</span>
+                                </div>
+                                <div style="font-size: 13px; color: #666; margin-bottom: 4px;">本田技研工業株式会社</div>
+                                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #888;">
+                                    <span>2025/01/14</span>
+                                    <span style="font-weight: bold; color: #333;">¥98,765</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- モバイルページネーション -->
+                        <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+                            <button style="padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; font-size: 14px;">前へ</button>
+                            <span style="display: flex; align-items: center; font-size: 14px;">1 / 5</span>
+                            <button style="padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; font-size: 14px;">次へ</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
