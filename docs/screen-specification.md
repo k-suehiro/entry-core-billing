@@ -9,9 +9,8 @@ Entry Core Billing - 伝票管理台帳
 売上伝票と仕入伝票の管理を行う業務システム
 
 ### 1.3 技術スタック
-- フロントエンド: React + TypeScript + Tailwind CSS
-- バックエンド: Supabase
-- ルーティング: React Router DOM
+- フロントエンド: HTML + JavaScript + Tailwind CSS
+- バックエンド: MySQL
 - チャート: Recharts
 - アイコン: Lucide React
 
