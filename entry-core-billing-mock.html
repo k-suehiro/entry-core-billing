@@ -6,6 +6,7 @@
     <title>Entry Core Billing - 伝票管理台帳</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .fade-in {
             animation: fadeIn 0.3s ease-in-out;
@@ -78,6 +79,19 @@
         .hidden {
             display: none !important;
         }
+        
+        .modal {
+            backdrop-filter: blur(4px);
+        }
+        
+        .form-input {
+            transition: border-color 0.2s ease-in-out;
+        }
+        
+        .form-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -129,7 +143,7 @@
                             <i data-lucide="file-text" class="h-8 w-8 text-blue-600 mr-3"></i>
                             <h2 id="page-title" class="text-2xl font-bold text-gray-900">売上伝票一覧</h2>
                         </div>
-                        <button class="btn inline-flex items-center px-3 py-1.5 border border-transparent rounded shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                        <button id="new-invoice-btn" class="btn inline-flex items-center px-3 py-1.5 border border-transparent rounded shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
                             <i data-lucide="plus" class="w-4 h-4 mr-1"></i>
                             新規作成
                         </button>
@@ -143,13 +157,14 @@
                                     <div class="w-1/2 flex gap-2">
                                         <div class="relative flex-1">
                                             <input
+                                                id="search-input"
                                                 type="text"
                                                 class="search-input block w-full px-2 py-1.5 pl-8 text-sm border border-blue-100 focus:ring-blue-500 focus:border-blue-500 rounded shadow-sm transition duration-150 ease-in-out hover:border-blue-200"
                                                 placeholder="得意先名、製番で検索"
                                             />
                                             <i data-lucide="file-text" class="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"></i>
                                         </div>
-                                        <button class="btn inline-flex items-center px-3 py-1.5 border border-transparent rounded shadow-sm text-sm font-medium text-white bg-red-400 hover:bg-red-500 focus:ring-red-400">
+                                        <button id="clear-search-btn" class="btn inline-flex items-center px-3 py-1.5 border border-transparent rounded shadow-sm text-sm font-medium text-white bg-red-400 hover:bg-red-500 focus:ring-red-400">
                                             <i data-lucide="x" class="w-4 h-4 mr-1"></i>
                                             クリア
                                         </button>
@@ -158,11 +173,13 @@
                                 <div class="flex gap-3">
                                     <div class="flex items-center gap-2">
                                         <input
+                                            id="date-start"
                                             type="date"
                                             class="block w-full px-2 py-1.5 text-sm border border-blue-100 focus:ring-blue-500 focus:border-blue-500 rounded shadow-sm transition duration-150 ease-in-out hover:border-blue-200"
                                         />
                                         <span class="text-gray-500">～</span>
                                         <input
+                                            id="date-end"
                                             type="date"
                                             class="block w-full px-2 py-1.5 text-sm border border-blue-100 focus:ring-blue-500 focus:border-blue-500 rounded shadow-sm transition duration-150 ease-in-out hover:border-blue-200"
                                         />
@@ -174,12 +191,12 @@
                         <!-- Table Controls -->
                         <div class="border-t border-gray-200">
                             <div class="p-3 flex justify-between items-center bg-gray-50 border-b border-gray-200">
-                                <select class="pl-2 pr-8 py-1.5 text-sm border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <select id="rows-per-page" class="pl-2 pr-8 py-1.5 text-sm border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
                                     <option value="10">10件</option>
                                     <option value="20">20件</option>
                                     <option value="50">50件</option>
                                 </select>
-                                <button class="btn inline-flex items-center px-3 py-1.5 border border-gray-300 rounded shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                                <button id="export-csv-btn" class="btn inline-flex items-center px-3 py-1.5 border border-gray-300 rounded shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
                                     <i data-lucide="download" class="w-4 h-4 mr-1"></i>
                                     CSV
                                 </button>
@@ -199,7 +216,7 @@
                                             <th class="w-[160px] px-3 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">部門</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="bg-white divide-y divide-gray-200">
+                                    <tbody id="sales-table-body" class="bg-white divide-y divide-gray-200">
                                         <tr class="table-row hover:bg-gray-50 cursor-pointer">
                                             <td class="w-[100px] px-3 py-3 whitespace-nowrap text-sm">
                                                 <div class="flex items-center text-blue-600">
@@ -357,7 +374,7 @@
                                             <th class="w-[160px] px-3 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">部門</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="bg-white divide-y divide-gray-200">
+                                    <tbody id="purchase-table-body" class="bg-white divide-y divide-gray-200">
                                         <tr class="table-row hover:bg-gray-50 cursor-pointer">
                                             <td class="w-[300px] px-3 py-3 whitespace-nowrap text-sm">
                                                 <div class="font-medium">[V] 株式会社トウキョウメディアワークス</div>
@@ -429,37 +446,37 @@
                             </div>
 
                             <!-- Pagination -->
-                            <div class="flex items-center justify-between border-t border-gray-200 bg-white px-3 py-2">
+                            <div id="pagination" class="flex items-center justify-between border-t border-gray-200 bg-white px-3 py-2">
                                 <div class="flex flex-1 justify-between sm:hidden">
-                                    <button class="relative inline-flex items-center rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    <button id="prev-mobile" class="relative inline-flex items-center rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
                                         前へ
                                     </button>
-                                    <button class="relative ml-3 inline-flex items-center rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    <button id="next-mobile" class="relative ml-3 inline-flex items-center rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
                                         次へ
                                     </button>
                                 </div>
                                 <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                                     <div>
-                                        <p class="text-sm text-gray-700">
-                                            全<span class="font-medium">5</span>ページ中
-                                            <span class="font-medium">1</span>ページ目を表示
+                                        <p id="pagination-info" class="text-sm text-gray-700">
+                                            全<span id="total-pages" class="font-medium">5</span>ページ中
+                                            <span id="current-page-info" class="font-medium">1</span>ページ目を表示
                                         </p>
                                     </div>
                                     <div>
-                                        <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm">
-                                            <button class="relative inline-flex items-center rounded-l-md px-2 py-1.5 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                                        <nav id="page-nav" class="isolate inline-flex -space-x-px rounded-md shadow-sm">
+                                            <button id="prev-desktop" class="relative inline-flex items-center rounded-l-md px-2 py-1.5 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
                                                 <i data-lucide="chevron-left" class="h-4 w-4"></i>
                                             </button>
-                                            <button class="relative inline-flex items-center px-3 py-1.5 text-sm font-medium z-10 bg-blue-600 text-white focus:z-20">
+                                            <button class="page-btn relative inline-flex items-center px-3 py-1.5 text-sm font-medium z-10 bg-blue-600 text-white focus:z-20" data-page="1">
                                                 1
                                             </button>
-                                            <button class="relative inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                                            <button class="page-btn relative inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50" data-page="2">
                                                 2
                                             </button>
-                                            <button class="relative inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                                            <button class="page-btn relative inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50" data-page="3">
                                                 3
                                             </button>
-                                            <button class="relative inline-flex items-center rounded-r-md px-2 py-1.5 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                                            <button id="next-desktop" class="relative inline-flex items-center rounded-r-md px-2 py-1.5 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
                                                 <i data-lucide="chevron-right" class="h-4 w-4"></i>
                                             </button>
                                         </nav>
@@ -476,49 +493,73 @@
                 <div class="bg-white p-6 rounded-lg shadow-lg space-y-6 card">
                     <div>
                         <h4 class="text-lg font-medium text-gray-900 mb-4">月次推移</h4>
-                        <div class="h-[200px] w-full bg-gray-50 rounded-lg flex items-center justify-center">
-                            <span class="text-gray-500">グラフ表示エリア</span>
+                        <div class="h-[200px] w-full">
+                            <canvas id="monthly-chart"></canvas>
                         </div>
                     </div>
 
                     <div class="border-t pt-6">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-medium text-gray-900">集計情報</h3>
-                            <select class="w-24 text-sm border-2 border-blue-100 rounded-lg px-2 py-2">
+                            <select id="period-select" class="w-24 text-sm border-2 border-blue-100 rounded-lg px-2 py-2">
                                 <option>全期間</option>
                                 <option>月別</option>
                                 <option>年別</option>
                             </select>
                         </div>
+                        
+                        <div id="period-filters" class="mb-6 hidden">
+                            <div class="flex gap-2">
+                                <select id="year-select" class="flex-1 text-sm border-2 border-blue-100 rounded-lg px-2 py-2">
+                                    <option value="2024">2024年</option>
+                                    <option value="2023">2023年</option>
+                                    <option value="2022">2022年</option>
+                                </select>
+                                <select id="month-select" class="flex-1 text-sm border-2 border-blue-100 rounded-lg px-2 py-2 hidden">
+                                    <option value="1">1月</option>
+                                    <option value="2">2月</option>
+                                    <option value="3">3月</option>
+                                    <option value="4">4月</option>
+                                    <option value="5">5月</option>
+                                    <option value="6">6月</option>
+                                    <option value="7">7月</option>
+                                    <option value="8">8月</option>
+                                    <option value="9">9月</option>
+                                    <option value="10">10月</option>
+                                    <option value="11">11月</option>
+                                    <option value="12">12月</option>
+                                </select>
+                            </div>
+                        </div>
 
                         <div class="space-y-4">
-                            <div class="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                            <div id="total-amount-card" class="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
                                 <div class="flex items-center text-blue-700">
                                     <i data-lucide="trending-up" class="w-5 h-5 mr-2"></i>
                                     <span>合計金額</span>
                                 </div>
-                                <span class="font-medium text-lg">¥525,000</span>
+                                <span id="total-amount" class="font-medium text-lg">¥525,000</span>
                             </div>
-                            <div class="flex items-center justify-between p-4 bg-indigo-50 rounded-lg">
+                            <div id="average-amount-card" class="flex items-center justify-between p-4 bg-indigo-50 rounded-lg">
                                 <div class="flex items-center text-indigo-700">
                                     <i data-lucide="trending-up" class="w-5 h-5 mr-2"></i>
                                     <span>平均金額</span>
                                 </div>
-                                <span class="font-medium text-lg">¥105,000</span>
+                                <span id="average-amount" class="font-medium text-lg">¥105,000</span>
                             </div>
-                            <div class="flex items-center justify-between p-4 bg-purple-50 rounded-lg">
+                            <div id="entity-count-card" class="flex items-center justify-between p-4 bg-purple-50 rounded-lg">
                                 <div class="flex items-center text-purple-700">
                                     <i data-lucide="users" class="w-5 h-5 mr-2"></i>
                                     <span id="entity-label">得意先数</span>
                                 </div>
-                                <span class="font-medium text-lg">5社</span>
+                                <span id="entity-count" class="font-medium text-lg">5社</span>
                             </div>
                         </div>
                     </div>
 
                     <div class="border-t pt-6">
                         <h4 id="top3-title" class="text-lg font-medium text-gray-900 mb-4">得意先別金額トップ3</h4>
-                        <div class="space-y-3">
+                        <div id="top3-list" class="space-y-3">
                             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                 <div class="flex items-center">
                                     <span class="w-6 text-sm font-medium text-gray-500">1.</span>
@@ -552,6 +593,86 @@
             </div>
         </div>
     </main>
+    
+    <!-- Invoice Form Modal -->
+    <div id="invoice-form-modal" class="fixed inset-0 bg-black bg-opacity-50 modal flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 id="form-title" class="text-xl font-bold text-gray-800">売上伝票登録</h2>
+                    <button id="close-form-modal" class="text-gray-400 hover:text-gray-600">
+                        <i data-lucide="x" class="h-6 w-6"></i>
+                    </button>
+                </div>
+                
+                <form id="invoice-form" class="space-y-6">
+                    <div class="grid grid-cols-12 gap-4">
+                        <div class="col-span-3">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">請求番号</label>
+                            <input type="text" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md" value="(自動採番)" readonly>
+                        </div>
+                        <div class="col-span-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">得意先 <span class="text-red-500">*</span></label>
+                            <select class="form-input w-full px-3 py-2 border border-gray-300 rounded-md" required>
+                                <option value="">選択してください</option>
+                                <option value="C001">[C] トヨタ自動車株式会社</option>
+                                <option value="C002">[C] 本田技研工業株式会社</option>
+                                <option value="C003">[C] スズキ株式会社</option>
+                            </select>
+                        </div>
+                        <div class="col-span-3">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">請求日 <span class="text-red-500">*</span></label>
+                            <input type="date" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md" required>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t pt-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">明細情報</h3>
+                            <button type="button" id="add-detail-btn" class="inline-flex items-center px-3 py-1.5 border border-blue-300 rounded shadow-sm text-sm font-medium text-blue-700 bg-white hover:bg-blue-50">
+                                <i data-lucide="plus" class="w-4 h-4 mr-1"></i>
+                                明細追加
+                            </button>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">製番</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">品名</th>
+                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">数量</th>
+                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">単価</th>
+                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">金額</th>
+                                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="detail-table-body" class="bg-white divide-y divide-gray-200">
+                                    <!-- 明細行がここに追加される -->
+                                </tbody>
+                                <tfoot class="bg-gray-50">
+                                    <tr>
+                                        <td colspan="4" class="px-3 py-2 text-sm font-medium text-right">合計金額</td>
+                                        <td id="total-amount-display" class="px-3 py-2 text-sm font-medium text-right">¥0</td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end gap-3 pt-6 border-t">
+                        <button type="button" id="cancel-form-btn" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                            キャンセル
+                        </button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                            保存
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- Profile Modal -->
     <div id="profile-modal" class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50 hidden">
@@ -624,6 +745,40 @@
     <script>
         // Initialize Lucide icons
         lucide.createIcons();
+        
+        // Global state
+        let currentView = 'sales';
+        let currentPage = 1;
+        let rowsPerPage = 10;
+        let searchTerm = '';
+        let dateStart = '';
+        let dateEnd = '';
+        let periodType = '全期間';
+        let selectedYear = 2024;
+        let selectedMonth = 1;
+        let chart = null;
+        
+        // Mock data
+        const salesData = [
+            { id: 'SI000001', customer: '[C] トヨタ自動車株式会社', date: '2024/12/15', details: 3, amount: 125000, employee: '山田 太郎', department: '東京事業所' },
+            { id: 'SI000002', customer: '[C] 本田技研工業株式会社', date: '2024/12/14', details: 2, amount: 89500, employee: '鈴木 花子', department: '東京事業所' },
+            { id: 'SI000003', customer: '[C] スズキ株式会社', date: '2024/12/13', details: 1, amount: 45000, employee: '佐藤 次郎', department: '浜松事業所' },
+            { id: 'SI000004', customer: '[C] 日産自動車株式会社', date: '2024/12/12', details: 4, amount: 198000, employee: '山田 太郎', department: '東京事業所' },
+            { id: 'SI000005', customer: '[C] ヤマハ発動機株式会社', date: '2024/12/11', details: 2, amount: 67500, employee: '鈴木 花子', department: '東京事業所' },
+            { id: 'SI000006', customer: '[C] 三菱電機株式会社', date: '2024/12/10', details: 3, amount: 156000, employee: '佐藤 次郎', department: '浜松事業所' },
+            { id: 'SI000007', customer: '[C] パナソニック株式会社', date: '2024/12/09', details: 1, amount: 78000, employee: '山田 太郎', department: '東京事業所' },
+            { id: 'SI000008', customer: '[C] シャープ株式会社', date: '2024/12/08', details: 2, amount: 92000, employee: '鈴木 花子', department: '東京事業所' },
+            { id: 'SI000009', customer: '[C] ソニー株式会社', date: '2024/12/07', details: 5, amount: 234000, employee: '佐藤 次郎', department: '浜松事業所' },
+            { id: 'SI000010', customer: '[C] 日立製作所株式会社', date: '2024/12/06', details: 3, amount: 145000, employee: '山田 太郎', department: '東京事業所' }
+        ];
+        
+        const purchaseData = [
+            { id: 'PO000001', supplier: '[V] 株式会社トウキョウメディアワークス', date: '2024/12/15', details: 2, amount: 85000, employee: '山田 太郎', department: '東京事業所' },
+            { id: 'PO000002', supplier: '[V] オオサカコンテンツラボ', date: '2024/12/14', details: 3, amount: 125500, employee: '鈴木 花子', department: '東京事業所' },
+            { id: 'PO000003', supplier: '[V] 名古屋ドキュメントサービス', date: '2024/12/13', details: 1, amount: 45000, employee: '佐藤 次郎', department: '浜松事業所' },
+            { id: 'PO000004', supplier: '[V] さいたま翻訳センター', date: '2024/12/12', details: 4, amount: 178000, employee: '山田 太郎', department: '東京事業所' },
+            { id: 'PO000005', supplier: '[V] 神奈川ローカライズ合同会社', date: '2024/12/11', details: 2, amount: 67500, employee: '鈴木 花子', department: '東京事業所' }
+        ];
 
         // Navigation functionality
         const salesNav = document.getElementById('sales-nav');
@@ -633,6 +788,285 @@
         const pageTitle = document.getElementById('page-title');
         const entityLabel = document.getElementById('entity-label');
         const top3Title = document.getElementById('top3-title');
+        
+        // Form elements
+        const newInvoiceBtn = document.getElementById('new-invoice-btn');
+        const invoiceFormModal = document.getElementById('invoice-form-modal');
+        const closeFormModal = document.getElementById('close-form-modal');
+        const cancelFormBtn = document.getElementById('cancel-form-btn');
+        const invoiceForm = document.getElementById('invoice-form');
+        const formTitle = document.getElementById('form-title');
+        
+        // Search and filter elements
+        const searchInput = document.getElementById('search-input');
+        const clearSearchBtn = document.getElementById('clear-search-btn');
+        const dateStartInput = document.getElementById('date-start');
+        const dateEndInput = document.getElementById('date-end');
+        const rowsPerPageSelect = document.getElementById('rows-per-page');
+        const exportCsvBtn = document.getElementById('export-csv-btn');
+        
+        // Pagination elements
+        const prevMobile = document.getElementById('prev-mobile');
+        const nextMobile = document.getElementById('next-mobile');
+        const prevDesktop = document.getElementById('prev-desktop');
+        const nextDesktop = document.getElementById('next-desktop');
+        const pageButtons = document.querySelectorAll('.page-btn');
+        const currentPageInfo = document.getElementById('current-page-info');
+        const totalPagesInfo = document.getElementById('total-pages');
+        
+        // Summary elements
+        const periodSelect = document.getElementById('period-select');
+        const periodFilters = document.getElementById('period-filters');
+        const yearSelect = document.getElementById('year-select');
+        const monthSelect = document.getElementById('month-select');
+        const totalAmountSpan = document.getElementById('total-amount');
+        const averageAmountSpan = document.getElementById('average-amount');
+        const entityCountSpan = document.getElementById('entity-count');
+        const top3List = document.getElementById('top3-list');
+        
+        // Initialize chart
+        function initChart() {
+            const ctx = document.getElementById('monthly-chart').getContext('2d');
+            const monthlyData = [
+                { month: '2024/07', amount: 450000 },
+                { month: '2024/08', amount: 520000 },
+                { month: '2024/09', amount: 380000 },
+                { month: '2024/10', amount: 620000 },
+                { month: '2024/11', amount: 580000 },
+                { month: '2024/12', amount: 525000 }
+            ];
+            
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: monthlyData.map(d => d.month),
+                    datasets: [{
+                        label: '金額',
+                        data: monthlyData.map(d => d.amount),
+                        borderColor: currentView === 'sales' ? '#3B82F6' : '#10B981',
+                        backgroundColor: currentView === 'sales' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '¥' + (value / 10000) + '万';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Update chart color based on current view
+        function updateChartColor() {
+            if (chart) {
+                const color = currentView === 'sales' ? '#3B82F6' : '#10B981';
+                const bgColor = currentView === 'sales' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)';
+                chart.data.datasets[0].borderColor = color;
+                chart.data.datasets[0].backgroundColor = bgColor;
+                chart.update();
+            }
+        }
+        
+        // Filter data based on search and date filters
+        function filterData(data) {
+            return data.filter(item => {
+                const matchesSearch = !searchTerm || 
+                    (currentView === 'sales' ? item.customer : item.supplier).toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesDateStart = !dateStart || item.date.replace(/\//g, '-') >= dateStart;
+                const matchesDateEnd = !dateEnd || item.date.replace(/\//g, '-') <= dateEnd;
+                return matchesSearch && matchesDateStart && matchesDateEnd;
+            });
+        }
+        
+        // Update table display
+        function updateTable() {
+            const data = currentView === 'sales' ? salesData : purchaseData;
+            const filteredData = filterData(data);
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const endIndex = startIndex + rowsPerPage;
+            const currentData = filteredData.slice(startIndex, endIndex);
+            
+            const tableBody = currentView === 'sales' ? 
+                document.getElementById('sales-table-body') : 
+                document.getElementById('purchase-table-body');
+            
+            tableBody.innerHTML = '';
+            
+            currentData.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = 'table-row hover:bg-gray-50 cursor-pointer';
+                row.addEventListener('click', () => showInvoiceDetail(item));
+                
+                if (currentView === 'sales') {
+                    row.innerHTML = `
+                        <td class="w-[100px] px-3 py-3 whitespace-nowrap text-sm">
+                            <div class="flex items-center text-blue-600">
+                                <i data-lucide="file-text" class="w-4 h-4 mr-1"></i>
+                                ${item.id}
+                            </div>
+                        </td>
+                        <td class="w-[300px] px-3 py-3 whitespace-nowrap text-sm">
+                            <div class="font-medium">${item.customer}</div>
+                        </td>
+                        <td class="w-[100px] px-3 py-3 whitespace-nowrap text-sm font-mono">
+                            ${item.date}
+                        </td>
+                        <td class="w-[80px] px-3 py-3 whitespace-nowrap text-sm text-center">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                ${item.details}件
+                            </span>
+                        </td>
+                        <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm font-mono text-right">
+                            ¥${item.amount.toLocaleString()}
+                        </td>
+                        <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm">
+                            ${item.employee}
+                        </td>
+                        <td class="w-[160px] px-3 py-3 whitespace-nowrap text-sm">
+                            ${item.department}
+                        </td>
+                    `;
+                } else {
+                    row.innerHTML = `
+                        <td class="w-[300px] px-3 py-3 whitespace-nowrap text-sm">
+                            <div class="font-medium">${item.supplier}</div>
+                        </td>
+                        <td class="w-[100px] px-3 py-3 whitespace-nowrap text-sm font-mono">
+                            ${item.date}
+                        </td>
+                        <td class="w-[80px] px-3 py-3 whitespace-nowrap text-sm text-center">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                ${item.details}件
+                            </span>
+                        </td>
+                        <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm font-mono text-right">
+                            ¥${item.amount.toLocaleString()}
+                        </td>
+                        <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm">
+                            ${item.employee}
+                        </td>
+                        <td class="w-[160px] px-3 py-3 whitespace-nowrap text-sm">
+                            ${item.department}
+                        </td>
+                    `;
+                }
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Update pagination
+            updatePagination(totalPages);
+            
+            // Re-initialize Lucide icons
+            lucide.createIcons();
+        }
+        
+        // Update pagination
+        function updatePagination(totalPages) {
+            currentPageInfo.textContent = currentPage;
+            totalPagesInfo.textContent = totalPages;
+            
+            // Update page buttons
+            pageButtons.forEach((btn, index) => {
+                const page = index + 1;
+                if (page === currentPage) {
+                    btn.className = 'page-btn relative inline-flex items-center px-3 py-1.5 text-sm font-medium z-10 bg-blue-600 text-white focus:z-20';
+                } else {
+                    btn.className = 'page-btn relative inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50';
+                }
+            });
+            
+            // Update navigation buttons
+            prevDesktop.disabled = currentPage === 1;
+            nextDesktop.disabled = currentPage === totalPages;
+            prevMobile.disabled = currentPage === 1;
+            nextMobile.disabled = currentPage === totalPages;
+        }
+        
+        // Update summary information
+        function updateSummary() {
+            const data = currentView === 'sales' ? salesData : purchaseData;
+            let filteredData = data;
+            
+            // Apply period filter
+            if (periodType === '月別') {
+                filteredData = data.filter(item => {
+                    const itemDate = new Date(item.date.replace(/\//g, '-'));
+                    return itemDate.getFullYear() === selectedYear && itemDate.getMonth() + 1 === selectedMonth;
+                });
+            } else if (periodType === '年別') {
+                filteredData = data.filter(item => {
+                    const itemDate = new Date(item.date.replace(/\//g, '-'));
+                    return itemDate.getFullYear() === selectedYear;
+                });
+            }
+            
+            const totalAmount = filteredData.reduce((sum, item) => sum + item.amount, 0);
+            const averageAmount = filteredData.length > 0 ? Math.round(totalAmount / filteredData.length) : 0;
+            const entityCount = new Set(filteredData.map(item => currentView === 'sales' ? item.customer : item.supplier)).size;
+            
+            totalAmountSpan.textContent = `¥${totalAmount.toLocaleString()}`;
+            averageAmountSpan.textContent = `¥${averageAmount.toLocaleString()}`;
+            entityCountSpan.textContent = `${entityCount}社`;
+            
+            // Update top 3
+            const entityTotals = {};
+            filteredData.forEach(item => {
+                const entity = currentView === 'sales' ? item.customer : item.supplier;
+                entityTotals[entity] = (entityTotals[entity] || 0) + item.amount;
+            });
+            
+            const top3 = Object.entries(entityTotals)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 3);
+            
+            top3List.innerHTML = top3.map(([entity, amount], index) => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center">
+                        <span class="w-6 text-sm font-medium text-gray-500">${index + 1}.</span>
+                        <span class="text-sm font-medium truncate" style="max-width: 150px;">
+                            ${entity}
+                        </span>
+                    </div>
+                    <span class="text-sm font-medium">¥${amount.toLocaleString()}</span>
+                </div>
+            `).join('');
+        }
+        
+        // Show invoice detail
+        function showInvoiceDetail(item) {
+            alert(`${currentView === 'sales' ? '売上' : '仕入'}伝票詳細: ${item.id}\n\n詳細画面を表示します（デモ版）`);
+        }
+        
+        // Show invoice form
+        function showInvoiceForm(item = null) {
+            formTitle.textContent = item ? 
+                `${currentView === 'sales' ? '売上' : '仕入'}伝票編集` : 
+                `${currentView === 'sales' ? '売上' : '仕入'}伝票登録`;
+            invoiceFormModal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+        
+        // Hide invoice form
+        function hideInvoiceForm() {
+            invoiceFormModal.classList.add('hidden');
+        }
 
         // Profile modal functionality
         const profileBtn = document.getElementById('profile-btn');
@@ -641,6 +1075,7 @@
 
         // Switch to sales view
         function showSales() {
+            currentView = 'sales';
             salesNav.className = 'nav-link active inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md bg-blue-600 text-white';
             purchasesNav.className = 'nav-link inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white';
             
@@ -660,11 +1095,18 @@
             titleIcon.setAttribute('data-lucide', 'file-text');
             titleIcon.className = 'h-8 w-8 text-blue-600 mr-3';
             
+            // Update new button color
+            newInvoiceBtn.className = 'btn inline-flex items-center px-3 py-1.5 border border-transparent rounded shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700';
+            
+            updateTable();
+            updateSummary();
+            updateChartColor();
             lucide.createIcons();
         }
 
         // Switch to purchases view
         function showPurchases() {
+            currentView = 'purchases';
             salesNav.className = 'nav-link inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white';
             purchasesNav.className = 'nav-link active green inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md bg-green-600 text-white';
             
@@ -684,12 +1126,138 @@
             titleIcon.setAttribute('data-lucide', 'shopping-cart');
             titleIcon.className = 'h-8 w-8 text-green-600 mr-3';
             
+            // Update new button color
+            newInvoiceBtn.className = 'btn inline-flex items-center px-3 py-1.5 border border-transparent rounded shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700';
+            
+            updateTable();
+            updateSummary();
+            updateChartColor();
             lucide.createIcons();
         }
 
         // Event listeners
         salesNav.addEventListener('click', showSales);
         purchasesNav.addEventListener('click', showPurchases);
+        
+        // Form modal events
+        newInvoiceBtn.addEventListener('click', () => showInvoiceForm());
+        closeFormModal.addEventListener('click', hideInvoiceForm);
+        cancelFormBtn.addEventListener('click', hideInvoiceForm);
+        
+        // Search and filter events
+        searchInput.addEventListener('input', (e) => {
+            searchTerm = e.target.value;
+            currentPage = 1;
+            updateTable();
+        });
+        
+        clearSearchBtn.addEventListener('click', () => {
+            searchTerm = '';
+            dateStart = '';
+            dateEnd = '';
+            searchInput.value = '';
+            dateStartInput.value = '';
+            dateEndInput.value = '';
+            currentPage = 1;
+            updateTable();
+        });
+        
+        dateStartInput.addEventListener('change', (e) => {
+            dateStart = e.target.value;
+            currentPage = 1;
+            updateTable();
+        });
+        
+        dateEndInput.addEventListener('change', (e) => {
+            dateEnd = e.target.value;
+            currentPage = 1;
+            updateTable();
+        });
+        
+        rowsPerPageSelect.addEventListener('change', (e) => {
+            rowsPerPage = parseInt(e.target.value);
+            currentPage = 1;
+            updateTable();
+        });
+        
+        exportCsvBtn.addEventListener('click', () => {
+            alert('CSV出力機能（デモ版では実装されていません）');
+        });
+        
+        // Pagination events
+        prevMobile.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                updateTable();
+            }
+        });
+        
+        nextMobile.addEventListener('click', () => {
+            const data = currentView === 'sales' ? salesData : purchaseData;
+            const filteredData = filterData(data);
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                updateTable();
+            }
+        });
+        
+        prevDesktop.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                updateTable();
+            }
+        });
+        
+        nextDesktop.addEventListener('click', () => {
+            const data = currentView === 'sales' ? salesData : purchaseData;
+            const filteredData = filterData(data);
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                updateTable();
+            }
+        });
+        
+        pageButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentPage = parseInt(btn.dataset.page);
+                updateTable();
+            });
+        });
+        
+        // Period selection events
+        periodSelect.addEventListener('change', (e) => {
+            periodType = e.target.value;
+            if (periodType === '全期間') {
+                periodFilters.classList.add('hidden');
+            } else {
+                periodFilters.classList.remove('hidden');
+                if (periodType === '月別') {
+                    monthSelect.classList.remove('hidden');
+                } else {
+                    monthSelect.classList.add('hidden');
+                }
+            }
+            updateSummary();
+        });
+        
+        yearSelect.addEventListener('change', (e) => {
+            selectedYear = parseInt(e.target.value);
+            updateSummary();
+        });
+        
+        monthSelect.addEventListener('change', (e) => {
+            selectedMonth = parseInt(e.target.value);
+            updateSummary();
+        });
+        
+        // Form submission
+        invoiceForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            alert('伝票を保存しました（デモ版）');
+            hideInvoiceForm();
+        });
 
         profileBtn.addEventListener('click', () => {
             profileModal.classList.remove('hidden');
@@ -706,11 +1274,11 @@
             }
         });
 
-        // Table row click handlers
-        document.querySelectorAll('.table-row').forEach(row => {
-            row.addEventListener('click', () => {
-                alert('伝票詳細を表示します（デモ版）');
-            });
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            updateTable();
+            updateSummary();
         });
     </script>
 </body>
