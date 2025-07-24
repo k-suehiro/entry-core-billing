@@ -890,10 +890,7 @@
                 const newTable = createInvoiceTable();
                 tableContainer.innerHTML = '';
                 tableContainer.appendChild(newTable);
-                // Re-initialize Lucide icons after DOM update
-                setTimeout(() => {
-                    lucide.createIcons();
-                }, 10);
+                lucide.createIcons();
             }
         };
 
@@ -935,10 +932,7 @@
             const summaryContainer = main.querySelector('#summary-container');
             summaryContainer.appendChild(createSummaryPanel());
 
-            // Re-initialize Lucide icons after DOM update
-            setTimeout(() => {
-                lucide.createIcons();
-            }, 10);
+            lucide.createIcons();
         };
 
         const switchView = (view) => {
@@ -947,22 +941,18 @@
             searchTerm = '';
             dateRange = { start: '', end: '' };
 
-            // Update navigation after a short delay to ensure DOM is ready
-            setTimeout(() => {
-                const salesNav = document.querySelector('#sales-nav');
-                const purchasesNav = document.querySelector('#purchases-nav');
+            // Update navigation
+            const salesNav = document.querySelector('#sales-nav');
+            const purchasesNav = document.querySelector('#purchases-nav');
 
-                if (salesNav && purchasesNav) {
-                    if (view === 'sales') {
-                        salesNav.className = 'nav-link active inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md bg-blue-600 text-white';
-                        purchasesNav.className = 'nav-link inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white';
-                    } else {
-                        salesNav.className = 'nav-link inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white';
-                        purchasesNav.className = 'nav-link active green inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md bg-green-600 text-white';
-                    }
-                }
-            }, 10);
-            
+            if (view === 'sales') {
+                salesNav.className = 'nav-link active inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md bg-blue-600 text-white';
+                purchasesNav.className = 'nav-link inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white';
+            } else {
+                salesNav.className = 'nav-link inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white';
+                purchasesNav.className = 'nav-link active green inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md bg-green-600 text-white';
+            }
+
             renderMainContent();
         };
 
@@ -971,12 +961,6 @@
             const modal = document.querySelector('#profile-modal');
             if (modal) {
                 modal.className = `fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50 ${isProfileModalOpen ? '' : 'hidden'}`;
-                // Re-initialize Lucide icons in modal
-                if (isProfileModalOpen) {
-                    setTimeout(() => {
-                        lucide.createIcons();
-                    }, 10);
-                }
             }
         };
 
@@ -1004,17 +988,11 @@
             modalContainer.appendChild(createProfileModal());
 
             // Initialize Lucide icons
-            setTimeout(() => {
-                lucide.createIcons();
-            }, 100);
+            lucide.createIcons();
         };
 
         // Start the application
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', init);
-        } else {
-            init();
-        }
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
