@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entry Core Billing - 伝票管理台帳</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .hover-scale {
+            transition: transform 0.2s ease-in-out;
+        }
+        
+        .hover-scale:hover {
+            transform: scale(1.02);
+        }
+        
+        .modal-backdrop {
+            backdrop-filter: blur(4px);
+        }
+        
+        .table-row:hover {
+            background-color: #f9fafb;
+            cursor: pointer;
+        }
+        
+        .nav-link {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .nav-link:hover {
+            background-color: rgba(55, 65, 81, 0.7);
+        }
+        
+        .nav-link.active {
+            background-color: #3b82f6;
+        }
+        
+        .nav-link.active.green {
+            background-color: #10b981;
+        }
+        
+        .search-input {
+            transition: border-color 0.2s ease-in-out;
+        }
+        
+        .search-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .btn {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card {
+            transition: box-shadow 0.2s ease-in-out;
+        }
+        
+        .card:hover {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-gradient-to-r from-gray-900 to-gray-800 border-b border-gray-700">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex h-24 items-center justify-between">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <i data-lucide="scroll-text" class="h-10 w-10 text-white"></i>
+                        <div class="ml-4">
+                            <h1 class="text-2xl font-bold text-white">Entry Core Billing</h1>
+                            <span class="text-base text-gray-400">伝票管理台帳</span>
+                        </div>
+                    </div>
+                    <div class="ml-16 flex space-x-2">
+                        <button id="sales-nav" class="nav-link active inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md bg-blue-600 text-white">
+                            <i data-lucide="file-text" class="w-5 h-5 mr-2"></i>
+                            売上伝票
+                        </button>
+                        <button id="purchases-nav" class="nav-link inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white">
+                            <i data-lucide="shopping-cart" class="w-5 h-5 mr-2"></i>
+                            仕入伝票
+                        </button>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="text-base text-gray-400 mr-6">
+                        最終更新: 2025/01/02
+                    </div>
+                    <button id="profile-btn" class="flex items-center gap-2 px-3 py-2 text-base font-medium text-white hover:bg-gray-700 rounded-md transition-colors">
+                        <i data-lucide="user-circle-2" class="w-6 h-6"></i>
+                        <span>山田 太郎</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div class="flex gap-6">
+            <!-- Left Content -->
+            <div class="flex-1">
+                <div class="space-y-4">
+                    <!-- Header -->
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center">
+                            <i data-lucide="file-text" class="h-8 w-8 text-blue-600 mr-3"></i>
+                            <h2 id="page-title" class="text-2xl font-bold text-gray-900">売上伝票一覧</h2>
+                        </div>
+                        <button class="btn inline-flex items-center px-3 py-1.5 border border-transparent rounded shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                            <i data-lucide="plus" class="w-4 h-4 mr-1"></i>
+                            新規作成
+                        </button>
+                    </div>
+
+                    <!-- Search Filters -->
+                    <div class="bg-white shadow rounded-lg">
+                        <div class="p-4">
+                            <div class="space-y-3">
+                                <div class="flex gap-3">
+                                    <div class="w-1/2 flex gap-2">
+                                        <div class="relative flex-1">
+                                            <input
+                                                type="text"
+                                                class="search-input block w-full px-2 py-1.5 pl-8 text-sm border border-blue-100 focus:ring-blue-500 focus:border-blue-500 rounded shadow-sm transition duration-150 ease-in-out hover:border-blue-200"
+                                                placeholder="得意先名、製番で検索"
+                                            />
+                                            <i data-lucide="file-text" class="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"></i>
+                                        </div>
+                                        <button class="btn inline-flex items-center px-3 py-1.5 border border-transparent rounded shadow-sm text-sm font-medium text-white bg-red-400 hover:bg-red-500 focus:ring-red-400">
+                                            <i data-lucide="x" class="w-4 h-4 mr-1"></i>
+                                            クリア
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="flex gap-3">
+                                    <div class="flex items-center gap-2">
+                                        <input
+                                            type="date"
+                                            class="block w-full px-2 py-1.5 text-sm border border-blue-100 focus:ring-blue-500 focus:border-blue-500 rounded shadow-sm transition duration-150 ease-in-out hover:border-blue-200"
+                                        />
+                                        <span class="text-gray-500">～</span>
+                                        <input
+                                            type="date"
+                                            class="block w-full px-2 py-1.5 text-sm border border-blue-100 focus:ring-blue-500 focus:border-blue-500 rounded shadow-sm transition duration-150 ease-in-out hover:border-blue-200"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Table Controls -->
+                        <div class="border-t border-gray-200">
+                            <div class="p-3 flex justify-between items-center bg-gray-50 border-b border-gray-200">
+                                <select class="pl-2 pr-8 py-1.5 text-sm border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="10">10件</option>
+                                    <option value="20">20件</option>
+                                    <option value="50">50件</option>
+                                </select>
+                                <button class="btn inline-flex items-center px-3 py-1.5 border border-gray-300 rounded shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                                    <i data-lucide="download" class="w-4 h-4 mr-1"></i>
+                                    CSV
+                                </button>
+                            </div>
+
+                            <!-- Sales Table -->
+                            <div id="sales-table" class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="w-[100px] px-3 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">請求番号</th>
+                                            <th class="w-[300px] px-3 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">得意先</th>
+                                            <th class="w-[100px] px-3 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">請求日</th>
+                                            <th class="w-[80px] px-3 py-3 text-center text-xs font-medium text-gray-500 tracking-wider">明細数</th>
+                                            <th class="w-[120px] px-3 py-3 text-right text-xs font-medium text-gray-500 tracking-wider">合計金額</th>
+                                            <th class="w-[120px] px-3 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">担当者</th>
+                                            <th class="w-[160px] px-3 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">部門</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        <tr class="table-row hover:bg-gray-50 cursor-pointer">
+                                            <td class="w-[100px] px-3 py-3 whitespace-nowrap text-sm">
+                                                <div class="flex items-center text-blue-600">
+                                                    <i data-lucide="file-text" class="w-4 h-4 mr-1"></i>
+                                                    SI000001
+                                                </div>
+                                            </td>
+                                            <td class="w-[300px] px-3 py-3 whitespace-nowrap text-sm">
+                                                <div class="font-medium">[C] トヨタ自動車株式会社</div>
+                                            </td>
+                                            <td class="w-[100px] px-3 py-3 whitespace-nowrap text-sm font-mono">
+                                                2024/12/15
+                                            </td>
+                                            <td class="w-[80px] px-3 py-3 whitespace-nowrap text-sm text-center">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                    3件
+                                                </span>
+                                            </td>
+                                            <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm font-mono text-right">
+                                                ¥125,000
+                                            </td>
+                                            <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm">
+                                                山田 太郎
+                                            </td>
+                                            <td class="w-[160px] px-3 py-3 whitespace-nowrap text-sm">
+                                                東京事業所
+                                            </td>
+                                        </tr>
+                                        <tr class="table-row hover:bg-gray-50 cursor-pointer">
+                                            <td class="w-[100px] px-3 py-3 whitespace-nowrap text-sm">
+                                                <div class="flex items-center text-blue-600">
+                                                    <i data-lucide="file-text" class="w-4 h-4 mr-1"></i>
+                                                    SI000002
+                                                </div>
+                                            </td>
+                                            <td class="w-[300px] px-3 py-3 whitespace-nowrap text-sm">
+                                                <div class="font-medium">[C] 本田技研工業株式会社</div>
+                                            </td>
+                                            <td class="w-[100px] px-3 py-3 whitespace-nowrap text-sm font-mono">
+                                                2024/12/14
+                                            </td>
+                                            <td class="w-[80px] px-3 py-3 whitespace-nowrap text-sm text-center">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                    2件
+                                                </span>
+                                            </td>
+                                            <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm font-mono text-right">
+                                                ¥89,500
+                                            </td>
+                                            <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm">
+                                                鈴木 花子
+                                            </td>
+                                            <td class="w-[160px] px-3 py-3 whitespace-nowrap text-sm">
+                                                東京事業所
+                                            </td>
+                                        </tr>
+                                        <tr class="table-row hover:bg-gray-50 cursor-pointer">
+                                            <td class="w-[100px] px-3 py-3 whitespace-nowrap text-sm">
+                                                <div class="flex items-center text-blue-600">
+                                                    <i data-lucide="file-text" class="w-4 h-4 mr-1"></i>
+                                                    SI000003
+                                                </div>
+                                            </td>
+                                            <td class="w-[300px] px-3 py-3 whitespace-nowrap text-sm">
+                                                <div class="font-medium">[C] スズキ株式会社</div>
+                                            </td>
+                                            <td class="w-[100px] px-3 py-3 whitespace-nowrap text-sm font-mono">
+                                                2024/12/13
+                                            </td>
+                                            <td class="w-[80px] px-3 py-3 whitespace-nowrap text-sm text-center">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                    1件
+                                                </span>
+                                            </td>
+                                            <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm font-mono text-right">
+                                                ¥45,000
+                                            </td>
+                                            <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm">
+                                                佐藤 次郎
+                                            </td>
+                                            <td class="w-[160px] px-3 py-3 whitespace-nowrap text-sm">
+                                                浜松事業所
+                                            </td>
+                                        </tr>
+                                        <tr class="table-row hover:bg-gray-50 cursor-pointer">
+                                            <td class="w-[100px] px-3 py-3 whitespace-nowrap text-sm">
+                                                <div class="flex items-center text-blue-600">
+                                                    <i data-lucide="file-text" class="w-4 h-4 mr-1"></i>
+                                                    SI000004
+                                                </div>
+                                            </td>
+                                            <td class="w-[300px] px-3 py-3 whitespace-nowrap text-sm">
+                                                <div class="font-medium">[C] 日産自動車株式会社</div>
+                                            </td>
+                                            <td class="w-[100px] px-3 py-3 whitespace-nowrap text-sm font-mono">
+                                                2024/12/12
+                                            </td>
+                                            <td class="w-[80px] px-3 py-3 whitespace-nowrap text-sm text-center">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                    4件
+                                                </span>
+                                            </td>
+                                            <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm font-mono text-right">
+                                                ¥198,000
+                                            </td>
+                                            <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm">
+                                                山田 太郎
+                                            </td>
+                                            <td class="w-[160px] px-3 py-3 whitespace-nowrap text-sm">
+                                                東京事業所
+                                            </td>
+                                        </tr>
+                                        <tr class="table-row hover:bg-gray-50 cursor-pointer">
+                                            <td class="w-[100px] px-3 py-3 whitespace-nowrap text-sm">
+                                                <div class="flex items-center text-blue-600">
+                                                    <i data-lucide="file-text" class="w-4 h-4 mr-1"></i>
+                                                    SI000005
+                                                </div>
+                                            </td>
+                                            <td class="w-[300px] px-3 py-3 whitespace-nowrap text-sm">
+                                                <div class="font-medium">[C] ヤマハ発動機株式会社</div>
+                                            </td>
+                                            <td class="w-[100px] px-3 py-3 whitespace-nowrap text-sm font-mono">
+                                                2024/12/11
+                                            </td>
+                                            <td class="w-[80px] px-3 py-3 whitespace-nowrap text-sm text-center">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                    2件
+                                                </span>
+                                            </td>
+                                            <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm font-mono text-right">
+                                                ¥67,500
+                                            </td>
+                                            <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm">
+                                                鈴木 花子
+                                            </td>
+                                            <td class="w-[160px] px-3 py-3 whitespace-nowrap text-sm">
+                                                東京事業所
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Purchase Table (Hidden by default) -->
+                            <div id="purchase-table" class="overflow-x-auto hidden">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="w-[300px] px-3 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">仕入先</th>
+                                            <th class="w-[100px] px-3 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">日付</th>
+                                            <th class="w-[80px] px-3 py-3 text-center text-xs font-medium text-gray-500 tracking-wider">明細数</th>
+                                            <th class="w-[120px] px-3 py-3 text-right text-xs font-medium text-gray-500 tracking-wider">合計金額</th>
+                                            <th class="w-[120px] px-3 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">担当者</th>
+                                            <th class="w-[160px] px-3 py-3 text-left text-xs font-medium text-gray-500 tracking-wider">部門</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        <tr class="table-row hover:bg-gray-50 cursor-pointer">
+                                            <td class="w-[300px] px-3 py-3 whitespace-nowrap text-sm">
+                                                <div class="font-medium">[V] 株式会社トウキョウメディアワークス</div>
+                                            </td>
+                                            <td class="w-[100px] px-3 py-3 whitespace-nowrap text-sm font-mono">
+                                                2024/12/15
+                                            </td>
+                                            <td class="w-[80px] px-3 py-3 whitespace-nowrap text-sm text-center">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                    2件
+                                                </span>
+                                            </td>
+                                            <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm font-mono text-right">
+                                                ¥85,000
+                                            </td>
+                                            <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm">
+                                                山田 太郎
+                                            </td>
+                                            <td class="w-[160px] px-3 py-3 whitespace-nowrap text-sm">
+                                                東京事業所
+                                            </td>
+                                        </tr>
+                                        <tr class="table-row hover:bg-gray-50 cursor-pointer">
+                                            <td class="w-[300px] px-3 py-3 whitespace-nowrap text-sm">
+                                                <div class="font-medium">[V] オオサカコンテンツラボ</div>
+                                            </td>
+                                            <td class="w-[100px] px-3 py-3 whitespace-nowrap text-sm font-mono">
+                                                2024/12/14
+                                            </td>
+                                            <td class="w-[80px] px-3 py-3 whitespace-nowrap text-sm text-center">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                    3件
+                                                </span>
+                                            </td>
+                                            <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm font-mono text-right">
+                                                ¥125,500
+                                            </td>
+                                            <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm">
+                                                鈴木 花子
+                                            </td>
+                                            <td class="w-[160px] px-3 py-3 whitespace-nowrap text-sm">
+                                                東京事業所
+                                            </td>
+                                        </tr>
+                                        <tr class="table-row hover:bg-gray-50 cursor-pointer">
+                                            <td class="w-[300px] px-3 py-3 whitespace-nowrap text-sm">
+                                                <div class="font-medium">[V] 名古屋ドキュメントサービス</div>
+                                            </td>
+                                            <td class="w-[100px] px-3 py-3 whitespace-nowrap text-sm font-mono">
+                                                2024/12/13
+                                            </td>
+                                            <td class="w-[80px] px-3 py-3 whitespace-nowrap text-sm text-center">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                    1件
+                                                </span>
+                                            </td>
+                                            <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm font-mono text-right">
+                                                ¥45,000
+                                            </td>
+                                            <td class="w-[120px] px-3 py-3 whitespace-nowrap text-sm">
+                                                佐藤 次郎
+                                            </td>
+                                            <td class="w-[160px] px-3 py-3 whitespace-nowrap text-sm">
+                                                浜松事業所
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination -->
+                            <div class="flex items-center justify-between border-t border-gray-200 bg-white px-3 py-2">
+                                <div class="flex flex-1 justify-between sm:hidden">
+                                    <button class="relative inline-flex items-center rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                        前へ
+                                    </button>
+                                    <button class="relative ml-3 inline-flex items-center rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                        次へ
+                                    </button>
+                                </div>
+                                <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                                    <div>
+                                        <p class="text-sm text-gray-700">
+                                            全<span class="font-medium">5</span>ページ中
+                                            <span class="font-medium">1</span>ページ目を表示
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm">
+                                            <button class="relative inline-flex items-center rounded-l-md px-2 py-1.5 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                                                <i data-lucide="chevron-left" class="h-4 w-4"></i>
+                                            </button>
+                                            <button class="relative inline-flex items-center px-3 py-1.5 text-sm font-medium z-10 bg-blue-600 text-white focus:z-20">
+                                                1
+                                            </button>
+                                            <button class="relative inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                                                2
+                                            </button>
+                                            <button class="relative inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                                                3
+                                            </button>
+                                            <button class="relative inline-flex items-center rounded-r-md px-2 py-1.5 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                                                <i data-lucide="chevron-right" class="h-4 w-4"></i>
+                                            </button>
+                                        </nav>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Sidebar -->
+            <div class="w-[320px] min-w-[320px]">
+                <div class="bg-white p-6 rounded-lg shadow-lg space-y-6 card">
+                    <div>
+                        <h4 class="text-lg font-medium text-gray-900 mb-4">月次推移</h4>
+                        <div class="h-[200px] w-full bg-gray-50 rounded-lg flex items-center justify-center">
+                            <span class="text-gray-500">グラフ表示エリア</span>
+                        </div>
+                    </div>
+
+                    <div class="border-t pt-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">集計情報</h3>
+                            <select class="w-24 text-sm border-2 border-blue-100 rounded-lg px-2 py-2">
+                                <option>全期間</option>
+                                <option>月別</option>
+                                <option>年別</option>
+                            </select>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                                <div class="flex items-center text-blue-700">
+                                    <i data-lucide="trending-up" class="w-5 h-5 mr-2"></i>
+                                    <span>合計金額</span>
+                                </div>
+                                <span class="font-medium text-lg">¥525,000</span>
+                            </div>
+                            <div class="flex items-center justify-between p-4 bg-indigo-50 rounded-lg">
+                                <div class="flex items-center text-indigo-700">
+                                    <i data-lucide="trending-up" class="w-5 h-5 mr-2"></i>
+                                    <span>平均金額</span>
+                                </div>
+                                <span class="font-medium text-lg">¥105,000</span>
+                            </div>
+                            <div class="flex items-center justify-between p-4 bg-purple-50 rounded-lg">
+                                <div class="flex items-center text-purple-700">
+                                    <i data-lucide="users" class="w-5 h-5 mr-2"></i>
+                                    <span id="entity-label">得意先数</span>
+                                </div>
+                                <span class="font-medium text-lg">5社</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-t pt-6">
+                        <h4 id="top3-title" class="text-lg font-medium text-gray-900 mb-4">得意先別金額トップ3</h4>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center">
+                                    <span class="w-6 text-sm font-medium text-gray-500">1.</span>
+                                    <span class="text-sm font-medium truncate" style="max-width: 150px;">
+                                        [C] 日産自動車株式会社
+                                    </span>
+                                </div>
+                                <span class="text-sm font-medium">¥198,000</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center">
+                                    <span class="w-6 text-sm font-medium text-gray-500">2.</span>
+                                    <span class="text-sm font-medium truncate" style="max-width: 150px;">
+                                        [C] トヨタ自動車株式会社
+                                    </span>
+                                </div>
+                                <span class="text-sm font-medium">¥125,000</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center">
+                                    <span class="w-6 text-sm font-medium text-gray-500">3.</span>
+                                    <span class="text-sm font-medium truncate" style="max-width: 150px;">
+                                        [C] 本田技研工業株式会社
+                                    </span>
+                                </div>
+                                <span class="text-sm font-medium">¥89,500</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Profile Modal -->
+    <div id="profile-modal" class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 fade-in">
+            <div class="relative">
+                <div class="h-32 bg-gradient-to-r from-blue-600 to-blue-800 rounded-t-lg"></div>
+                
+                <button id="close-profile" class="absolute top-4 right-4 text-white hover:text-gray-200 transition-colors">
+                    <i data-lucide="x" class="h-6 w-6"></i>
+                </button>
+
+                <div class="absolute left-6 -bottom-12">
+                    <div class="relative">
+                        <img
+                            src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+                            alt="Profile"
+                            class="w-24 h-24 rounded-full border-4 border-white shadow-lg"
+                        />
+                        <button class="absolute bottom-0 right-0 bg-blue-600 p-1.5 rounded-full text-white hover:bg-blue-700 transition-colors">
+                            <i data-lucide="camera" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-6 pt-16 pb-6">
+                <div class="space-y-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">山田 太郎</h2>
+                        <p class="text-sm text-gray-500">システム管理者</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="flex items-center text-gray-700">
+                            <i data-lucide="mail" class="w-5 h-5 mr-3 text-gray-400"></i>
+                            <span>yamada.taro@example.com</span>
+                        </div>
+                        <div class="flex items-center text-gray-700">
+                            <i data-lucide="building-2" class="w-5 h-5 mr-3 text-gray-400"></i>
+                            <span>東京事業所</span>
+                        </div>
+                        <div class="flex items-center text-gray-700">
+                            <i data-lucide="phone" class="w-5 h-5 mr-3 text-gray-400"></i>
+                            <span>03-1234-5678</span>
+                        </div>
+                    </div>
+
+                    <div class="pt-6 border-t">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">アカウント設定</h3>
+                        <div class="space-y-3">
+                            <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+                                プロフィール編集
+                            </button>
+                            <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+                                パスワード変更
+                            </button>
+                            <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+                                通知設定
+                            </button>
+                            <button class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                ログアウト
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Navigation functionality
+        const salesNav = document.getElementById('sales-nav');
+        const purchasesNav = document.getElementById('purchases-nav');
+        const salesTable = document.getElementById('sales-table');
+        const purchaseTable = document.getElementById('purchase-table');
+        const pageTitle = document.getElementById('page-title');
+        const entityLabel = document.getElementById('entity-label');
+        const top3Title = document.getElementById('top3-title');
+
+        // Profile modal functionality
+        const profileBtn = document.getElementById('profile-btn');
+        const profileModal = document.getElementById('profile-modal');
+        const closeProfile = document.getElementById('close-profile');
+
+        // Switch to sales view
+        function showSales() {
+            salesNav.className = 'nav-link active inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md bg-blue-600 text-white';
+            purchasesNav.className = 'nav-link inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white';
+            
+            salesTable.classList.remove('hidden');
+            purchaseTable.classList.add('hidden');
+            
+            pageTitle.textContent = '売上伝票一覧';
+            entityLabel.textContent = '得意先数';
+            top3Title.textContent = '得意先別金額トップ3';
+            
+            // Update search placeholder
+            const searchInput = document.querySelector('.search-input');
+            searchInput.placeholder = '得意先名、製番で検索';
+            
+            // Update icon
+            const titleIcon = pageTitle.previousElementSibling;
+            titleIcon.setAttribute('data-lucide', 'file-text');
+            titleIcon.className = 'h-8 w-8 text-blue-600 mr-3';
+            
+            lucide.createIcons();
+        }
+
+        // Switch to purchases view
+        function showPurchases() {
+            salesNav.className = 'nav-link inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white';
+            purchasesNav.className = 'nav-link active green inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md bg-green-600 text-white';
+            
+            salesTable.classList.add('hidden');
+            purchaseTable.classList.remove('hidden');
+            
+            pageTitle.textContent = '仕入伝票一覧';
+            entityLabel.textContent = '仕入先数';
+            top3Title.textContent = '仕入先別金額トップ3';
+            
+            // Update search placeholder
+            const searchInput = document.querySelector('.search-input');
+            searchInput.placeholder = '仕入先名で検索';
+            
+            // Update icon
+            const titleIcon = pageTitle.previousElementSibling;
+            titleIcon.setAttribute('data-lucide', 'shopping-cart');
+            titleIcon.className = 'h-8 w-8 text-green-600 mr-3';
+            
+            lucide.createIcons();
+        }
+
+        // Event listeners
+        salesNav.addEventListener('click', showSales);
+        purchasesNav.addEventListener('click', showPurchases);
+
+        profileBtn.addEventListener('click', () => {
+            profileModal.classList.remove('hidden');
+        });
+
+        closeProfile.addEventListener('click', () => {
+            profileModal.classList.add('hidden');
+        });
+
+        // Close modal when clicking outside
+        profileModal.addEventListener('click', (e) => {
+            if (e.target === profileModal) {
+                profileModal.classList.add('hidden');
+            }
+        });
+
+        // Table row click handlers
+        document.querySelectorAll('.table-row').forEach(row => {
+            row.addEventListener('click', () => {
+                alert('伝票詳細を表示します（デモ版）');
+            });
+        });
+    </script>
+</body>
+</html>
