@@ -668,6 +668,94 @@
         </div>
     </div>
 
+    <!-- Invoice Form Screen (Hidden by default) -->
+    <div id="invoice-form-screen" class="hidden">
+      <div class="space-y-4">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center">
+            <i data-lucide="file-text" class="h-6 w-6 text-blue-600 mr-2"></i>
+            <h2 class="text-xl font-bold text-gray-800" id="form-title">売上伝票登録</h2>
+          </div>
+          <div class="flex gap-2">
+            <button id="back-to-list" class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+              <i data-lucide="arrow-left" class="w-4 h-4 mr-1"></i>
+              戻る
+            </button>
+            <button id="save-invoice" class="inline-flex items-center px-3 py-1.5 border border-transparent rounded shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+              <i data-lucide="save" class="w-4 h-4 mr-1"></i>
+              保存
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white shadow rounded-lg">
+          <div class="p-4 border-b border-gray-200">
+            <div class="mb-4">
+              <h3 class="text-base font-medium text-gray-900">基本情報</h3>
+            </div>
+
+            <div class="grid grid-cols-12 gap-4">
+              <div class="col-span-2">
+                <label class="block text-sm font-medium text-gray-700">伝票番号</label>
+                <input type="text" class="mt-1 block w-full px-3 py-2 text-sm bg-gray-50 border-2 border-gray-200 rounded shadow-inner text-gray-500" value="(自動採番)" readonly>
+              </div>
+
+              <div class="col-span-8">
+                <label class="block text-sm font-medium text-gray-700">
+                  <span id="customer-supplier-label">得意先</span>
+                  <span class="ml-1 text-red-500">*</span>
+                </label>
+                <select id="customer-supplier-select" class="mt-1 block w-full px-3 py-2 text-sm bg-white border-2 border-blue-100 focus:ring-blue-500 focus:border-blue-500 rounded shadow-sm">
+                  <option value="">選択してください</option>
+                </select>
+              </div>
+
+              <div class="col-span-2">
+                <label class="block text-sm font-medium text-gray-700">
+                  日付
+                  <span class="ml-1 text-red-500">*</span>
+                </label>
+                <input type="date" id="invoice-date" class="mt-1 block w-full px-3 py-2 text-sm bg-white border-2 border-blue-100 focus:ring-blue-500 focus:border-blue-500 rounded shadow-sm">
+              </div>
+            </div>
+          </div>
+
+          <div class="p-4">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-base font-medium text-gray-900">明細情報</h3>
+              <button id="add-detail" class="inline-flex items-center px-3 py-1.5 border border-blue-300 rounded shadow-sm text-sm font-medium text-blue-700 bg-white hover:bg-blue-50">
+                <i data-lucide="plus" class="w-4 h-4 mr-1"></i>
+                明細追加
+              </button>
+            </div>
+
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">製番</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">品名</th>
+                  <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">数量</th>
+                  <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">単価</th>
+                  <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">金額</th>
+                  <th class="w-20 px-3 py-2 text-center text-xs font-medium text-gray-500">操作</th>
+                </tr>
+              </thead>
+              <tbody id="detail-tbody" class="bg-white divide-y divide-gray-200">
+                <!-- 明細行がここに追加される -->
+              </tbody>
+              <tfoot class="bg-gray-50">
+                <tr>
+                  <td colspan="4" class="px-3 py-2 text-sm font-medium text-right">合計金額</td>
+                  <td class="px-3 py-2 text-sm font-medium text-right" id="total-amount">¥0</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Profile Modal -->
     <div id="profile-modal" class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50 hidden">
         <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 fade-in">
@@ -751,6 +839,8 @@
         let selectedYear = 2024;
         let selectedMonth = 1;
         let chart = null;
+        let filteredInvoices = [];
+        let detailCounter = 0;
         
         // Mock data
         const salesData = [
@@ -773,6 +863,17 @@
             { id: 'PO000004', supplier: '[V] さいたま翻訳センター', date: '2024/12/12', details: 4, amount: 178000, employee: '山田 太郎', department: '東京事業所' },
             { id: 'PO000005', supplier: '[V] 神奈川ローカライズ合同会社', date: '2024/12/11', details: 2, amount: 67500, employee: '鈴木 花子', department: '東京事業所' }
         ];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initChart();
+            filterInvoices();
+            updateDisplay();
+            updateSummary();
+            updateChart();
+            updatePagination();
+            lucide.createIcons();
+        });
 
         // Navigation functionality
         const salesNav = document.getElementById('sales-nav');
@@ -876,25 +977,106 @@
             }
         }
         
-        // Filter data based on search and date filters
-        function filterData(data) {
-            return data.filter(item => {
+        // Filter invoices
+        function filterInvoices() {
+            const data = currentView === 'sales' ? salesData : purchaseData;
+            filteredInvoices = data.filter(invoice => {
                 const matchesSearch = !searchTerm || 
-                    (currentView === 'sales' ? item.customer : item.supplier).toLowerCase().includes(searchTerm.toLowerCase());
-                const matchesDateStart = !dateStart || item.date.replace(/\//g, '-') >= dateStart;
-                const matchesDateEnd = !dateEnd || item.date.replace(/\//g, '-') <= dateEnd;
+                    (currentView === 'sales' ? invoice.customer : invoice.supplier).toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesDateStart = !dateStart || invoice.date.replace(/\//g, '-') >= dateStart;
+                const matchesDateEnd = !dateEnd || invoice.date.replace(/\//g, '-') <= dateEnd;
                 return matchesSearch && matchesDateStart && matchesDateEnd;
             });
         }
-        
-        // Update table display
-        function updateTable() {
-            const data = currentView === 'sales' ? salesData : purchaseData;
-            const filteredData = filterData(data);
-            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+
+        // Switch view
+        function switchView(view) {
+            currentView = view;
+            
+            if (view === 'sales') {
+                salesNav.className = 'nav-link active inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md bg-blue-600 text-white';
+                purchasesNav.className = 'nav-link inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white';
+                
+                salesTable.classList.remove('hidden');
+                purchaseTable.classList.add('hidden');
+                
+                pageTitle.textContent = '売上伝票一覧';
+                entityLabel.textContent = '得意先数';
+                top3Title.textContent = '得意先別金額トップ3';
+                
+                const titleIcon = pageTitle.previousElementSibling;
+                titleIcon.setAttribute('data-lucide', 'file-text');
+                titleIcon.className = 'h-8 w-8 text-blue-600 mr-3';
+                
+                newInvoiceBtn.className = 'btn inline-flex items-center px-3 py-1.5 border border-transparent rounded shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700';
+            } else {
+                salesNav.className = 'nav-link inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white';
+                purchasesNav.className = 'nav-link active green inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md bg-green-600 text-white';
+                
+                salesTable.classList.add('hidden');
+                purchaseTable.classList.remove('hidden');
+                
+                pageTitle.textContent = '仕入伝票一覧';
+                entityLabel.textContent = '仕入先数';
+                top3Title.textContent = '仕入先別金額トップ3';
+                
+                const titleIcon = pageTitle.previousElementSibling;
+                titleIcon.setAttribute('data-lucide', 'shopping-cart');
+                titleIcon.className = 'h-8 w-8 text-green-600 mr-3';
+                
+                newInvoiceBtn.className = 'btn inline-flex items-center px-3 py-1.5 border border-transparent rounded shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700';
+            }
+            
+            currentPage = 1;
+            filterInvoices();
+            updateDisplay();
+            updateSummary();
+            updateChart();
+            updatePagination();
+            lucide.createIcons();
+        }
+
+        // Handle search
+        function handleSearch() {
+            searchTerm = searchInput.value;
+            dateStart = dateStartInput.value;
+            dateEnd = dateEndInput.value;
+            currentPage = 1;
+            filterInvoices();
+            updateDisplay();
+            updateSummary();
+            updatePagination();
+        }
+
+        // Clear filters
+        function clearFilters() {
+            searchTerm = '';
+            dateStart = '';
+            dateEnd = '';
+            searchInput.value = '';
+            dateStartInput.value = '';
+            dateEndInput.value = '';
+            currentPage = 1;
+            filterInvoices();
+            updateDisplay();
+            updateSummary();
+            updatePagination();
+        }
+
+        // Change rows per page
+        function handleRowsPerPageChange() {
+            rowsPerPage = parseInt(rowsPerPageSelect.value);
+            currentPage = 1;
+            updateDisplay();
+            updateSummary();
+            updatePagination();
+        }
+
+        // Update display
+        function updateDisplay() {
             const startIndex = (currentPage - 1) * rowsPerPage;
             const endIndex = startIndex + rowsPerPage;
-            const currentData = filteredData.slice(startIndex, endIndex);
+            const currentData = filteredInvoices.slice(startIndex, endIndex);
             
             const tableBody = currentView === 'sales' ? 
                 document.getElementById('sales-table-body') : 
@@ -905,7 +1087,7 @@
             currentData.forEach(item => {
                 const row = document.createElement('tr');
                 row.className = 'table-row hover:bg-gray-50 cursor-pointer';
-                row.addEventListener('click', () => showInvoiceDetail(item));
+                row.addEventListener('click', () => handleRowClick(item));
                 
                 if (currentView === 'sales') {
                     row.innerHTML = `
@@ -963,57 +1145,121 @@
                 
                 tableBody.appendChild(row);
             });
-            
-            // Update pagination
-            updatePagination(totalPages);
-            
-            // Re-initialize Lucide icons
+
+            updatePagination();
             lucide.createIcons();
         }
-        
+
+        // Handle row click
+        function handleRowClick(invoice) {
+            const type = currentView === 'sales' ? '売上' : '仕入';
+            const customerOrSupplier = currentView === 'sales' ? invoice.customer : invoice.supplier;
+            const dateField = currentView === 'sales' ? invoice.invoiceDate : invoice.date;
+            
+            alert(`${type}伝票詳細\n\n` +
+                  `伝票番号: ${invoice.id}\n` +
+                  `${currentView === 'sales' ? '得意先' : '仕入先'}: ${customerOrSupplier}\n` +
+                  `金額: ¥${invoice.amount.toLocaleString()}\n` +
+                  `担当者: ${invoice.employee}\n` +
+                  `担当部門: ${invoice.department}`);
+        }
+
         // Update pagination
-        function updatePagination(totalPages) {
-            currentPageInfo.textContent = currentPage;
-            totalPagesInfo.textContent = totalPages;
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredInvoices.length / rowsPerPage);
             
-            // Update page buttons
-            pageButtons.forEach((btn, index) => {
-                const page = index + 1;
-                if (page === currentPage) {
-                    btn.className = 'page-btn relative inline-flex items-center px-3 py-1.5 text-sm font-medium z-10 bg-blue-600 text-white focus:z-20';
-                } else {
-                    btn.className = 'page-btn relative inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50';
-                }
-            });
+            // Update page info
+            document.getElementById('total-pages').textContent = totalPages;
+            document.getElementById('current-page-display').textContent = currentPage;
             
-            // Update navigation buttons
-            prevDesktop.disabled = currentPage === 1;
-            nextDesktop.disabled = currentPage === totalPages;
+            // Update mobile buttons
+            const prevMobile = document.getElementById('prev-mobile');
+            const nextMobile = document.getElementById('next-mobile');
             prevMobile.disabled = currentPage === 1;
             nextMobile.disabled = currentPage === totalPages;
+            
+            // Update desktop buttons
+            const prevDesktop = document.getElementById('prev-desktop');
+            const nextDesktop = document.getElementById('next-desktop');
+            prevDesktop.disabled = currentPage === 1;
+            nextDesktop.disabled = currentPage === totalPages;
+            
+            // Update page numbers
+            const pageNumbers = document.getElementById('page-numbers');
+            pageNumbers.innerHTML = '';
+            
+            for (let i = 1; i <= totalPages; i++) {
+                if (totalPages <= 7 || i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+                    const pageBtn = document.createElement('button');
+                    pageBtn.className = `relative inline-flex items-center px-3 py-1.5 text-sm font-medium ${
+                        i === currentPage
+                            ? 'z-10 bg-blue-600 text-white focus:z-20'
+                            : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50'
+                    }`;
+                    pageBtn.textContent = i;
+                    pageBtn.addEventListener('click', () => {
+                        currentPage = i;
+                        updateDisplay();
+                        updatePagination();
+                    });
+                    pageNumbers.appendChild(pageBtn);
+                }
+            }
+            
+            // Add pagination event listeners
+            prevMobile.onclick = () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    updateDisplay();
+                    updatePagination();
+                }
+            };
+            
+            nextMobile.onclick = () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    updateDisplay();
+                    updatePagination();
+                }
+            };
+            
+            prevDesktop.onclick = () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    updateDisplay();
+                    updatePagination();
+                }
+            };
+            
+            nextDesktop.onclick = () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    updateDisplay();
+                    updatePagination();
+                }
+            };
         }
-        
-        // Update summary information
+
+        // Update summary
         function updateSummary() {
-            const data = currentView === 'sales' ? salesData : purchaseData;
-            let filteredData = data;
+            let summaryData = [...filteredInvoices];
             
             // Apply period filter
             if (periodType === '月別') {
-                filteredData = data.filter(item => {
+                summaryData = filteredInvoices.filter(item => {
                     const itemDate = new Date(item.date.replace(/\//g, '-'));
                     return itemDate.getFullYear() === selectedYear && itemDate.getMonth() + 1 === selectedMonth;
                 });
             } else if (periodType === '年別') {
-                filteredData = data.filter(item => {
+                summaryData = filteredInvoices.filter(item => {
                     const itemDate = new Date(item.date.replace(/\//g, '-'));
                     return itemDate.getFullYear() === selectedYear;
                 });
             }
             
-            const totalAmount = filteredData.reduce((sum, item) => sum + item.amount, 0);
-            const averageAmount = filteredData.length > 0 ? Math.round(totalAmount / filteredData.length) : 0;
-            const entityCount = new Set(filteredData.map(item => currentView === 'sales' ? item.customer : item.supplier)).size;
+            const totalAmount = summaryData.reduce((sum, item) => sum + item.amount, 0);
+            const averageAmount = summaryData.length > 0 ? Math.round(totalAmount / summaryData.length) : 0;
+            const entityCount = new Set(summaryData.map(item => currentView === 'sales' ? item.customer : item.supplier)).size;
             
             totalAmountSpan.textContent = `¥${totalAmount.toLocaleString()}`;
             averageAmountSpan.textContent = `¥${averageAmount.toLocaleString()}`;
@@ -1021,7 +1267,7 @@
             
             // Update top 3
             const entityTotals = {};
-            filteredData.forEach(item => {
+            summaryData.forEach(item => {
                 const entity = currentView === 'sales' ? item.customer : item.supplier;
                 entityTotals[entity] = (entityTotals[entity] || 0) + item.amount;
             });
@@ -1042,7 +1288,55 @@
                 </div>
             `).join('');
         }
-        
+
+        // Handle period change
+        function handlePeriodChange() {
+            periodType = periodSelect.value;
+            if (periodType === '全期間') {
+                periodFilters.classList.add('hidden');
+            } else {
+                periodFilters.classList.remove('hidden');
+                if (periodType === '月別') {
+                    monthSelect.classList.remove('hidden');
+                } else {
+                    monthSelect.classList.add('hidden');
+                }
+            }
+            currentPage = 1;
+            updateDisplay();
+            updateSummary();
+            updatePagination();
+        }
+
+        // Handle year change
+        function handleYearChange() {
+            selectedYear = parseInt(yearSelect.value);
+            currentPage = 1;
+            updateDisplay();
+            updateSummary();
+            updatePagination();
+        }
+
+        // Handle month change
+        function handleMonthChange() {
+            selectedMonth = parseInt(monthSelect.value);
+            currentPage = 1;
+            updateDisplay();
+            updateSummary();
+            updatePagination();
+        }
+
+        // Update chart
+        function updateChart() {
+            if (chart) {
+                const color = currentView === 'sales' ? '#3B82F6' : '#10B981';
+                const bgColor = currentView === 'sales' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)';
+                chart.data.datasets[0].borderColor = color;
+                chart.data.datasets[0].backgroundColor = bgColor;
+                chart.update();
+            }
+        }
+
         // Show invoice detail
         function showInvoiceDetail(item) {
             alert(`${currentView === 'sales' ? '売上' : '仕入'}伝票詳細: ${item.id}\n\n詳細画面を表示します（デモ版）`);
@@ -1062,195 +1356,185 @@
             invoiceFormModal.classList.add('hidden');
         }
 
+        // Show invoice form
+        function showInvoiceForm() {
+            document.getElementById('main-content').classList.add('hidden');
+            document.getElementById('invoice-form-screen').classList.remove('hidden');
+            
+            // Update form based on current view
+            const isBlue = currentView === 'sales';
+            const formTitle = document.getElementById('form-title');
+            const customerSupplierLabel = document.getElementById('customer-supplier-label');
+            const customerSupplierSelect = document.getElementById('customer-supplier-select');
+            const saveButton = document.getElementById('save-invoice');
+            
+            if (isBlue) {
+                formTitle.innerHTML = '<i data-lucide="file-text" class="h-6 w-6 text-blue-600 mr-2"></i>売上伝票登録';
+                customerSupplierLabel.textContent = '得意先';
+                saveButton.className = 'inline-flex items-center px-3 py-1.5 border border-transparent rounded shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700';
+                
+                // Populate customers
+                customerSupplierSelect.innerHTML = '<option value="">得意先を選択してください</option>';
+                mockCustomers.forEach(customer => {
+                    const option = document.createElement('option');
+                    option.value = customer.code;
+                    option.textContent = customer.name;
+                    customerSupplierSelect.appendChild(option);
+                });
+            } else {
+                formTitle.innerHTML = '<i data-lucide="shopping-cart" class="h-6 w-6 text-green-600 mr-2"></i>仕入伝票登録';
+                customerSupplierLabel.textContent = '仕入先';
+                saveButton.className = 'inline-flex items-center px-3 py-1.5 border border-transparent rounded shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700';
+                
+                // Populate suppliers
+                customerSupplierSelect.innerHTML = '<option value="">仕入先を選択してください</option>';
+                mockSuppliers.forEach(supplier => {
+                    const option = document.createElement('option');
+                    option.value = supplier.code;
+                    option.textContent = supplier.name;
+                    customerSupplierSelect.appendChild(option);
+                });
+            }
+            
+            // Set today's date
+            document.getElementById('invoice-date').value = new Date().toISOString().split('T')[0];
+            
+            // Clear details
+            document.getElementById('detail-tbody').innerHTML = '';
+            detailCounter = 0;
+            updateTotalAmount();
+            
+            lucide.createIcons();
+        }
+        
+        // Hide invoice form
+        function hideInvoiceForm() {
+            document.getElementById('invoice-form-screen').classList.add('hidden');
+            document.getElementById('main-content').classList.remove('hidden');
+        }
+        
+        // Add detail row
+        function addDetailRow() {
+            detailCounter++;
+            const tbody = document.getElementById('detail-tbody');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td class="px-3 py-2">
+                <input type="text" class="w-full px-2 py-1 text-sm border border-gray-200 rounded" placeholder="TK25A001" maxlength="8">
+              </td>
+              <td class="px-3 py-2">
+                <input type="text" class="w-full px-2 py-1 text-sm border border-gray-200 rounded" placeholder="品名を入力">
+              </td>
+              <td class="px-3 py-2">
+                <input type="number" class="w-full px-2 py-1 text-sm border border-gray-200 rounded text-right" placeholder="1" min="1" onchange="updateRowAmount(this)">
+              </td>
+              <td class="px-3 py-2">
+                <input type="number" class="w-full px-2 py-1 text-sm border border-gray-200 rounded text-right" placeholder="10000" min="0" onchange="updateRowAmount(this)">
+              </td>
+              <td class="px-3 py-2">
+                <span class="text-sm text-right block row-amount">¥0</span>
+              </td>
+              <td class="px-3 py-2">
+                <button onclick="removeDetailRow(this)" class="text-red-500 hover:text-red-700">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </td>
+            `;
+            tbody.appendChild(row);
+            lucide.createIcons();
+        }
+        
+        // Remove detail row
+        function removeDetailRow(button) {
+            button.closest('tr').remove();
+            updateTotalAmount();
+        }
+        
+        // Update row amount
+        function updateRowAmount(input) {
+            const row = input.closest('tr');
+            const quantityInput = row.querySelector('input[type="number"]:nth-of-type(1)');
+            const priceInput = row.querySelector('input[type="number"]:nth-of-type(2)');
+            const amountSpan = row.querySelector('.row-amount');
+            
+            const quantity = parseInt(quantityInput.value) || 0;
+            const price = parseInt(priceInput.value) || 0;
+            const amount = quantity * price;
+            
+            amountSpan.textContent = `¥${amount.toLocaleString()}`;
+            updateTotalAmount();
+        }
+        
+        // Update total amount
+        function updateTotalAmount() {
+            const rows = document.querySelectorAll('#detail-tbody tr');
+            let total = 0;
+            
+            rows.forEach(row => {
+                const quantityInput = row.querySelector('input[type="number"]:nth-of-type(1)');
+                const priceInput = row.querySelector('input[type="number"]:nth-of-type(2)');
+                
+                const quantity = parseInt(quantityInput.value) || 0;
+                const price = parseInt(priceInput.value) || 0;
+                total += quantity * price;
+            });
+            
+            document.getElementById('total-amount').textContent = `¥${total.toLocaleString()}`;
+        }
+        
+        // Save invoice
+        function saveInvoice() {
+            const customerSupplier = document.getElementById('customer-supplier-select').value;
+            const date = document.getElementById('invoice-date').value;
+            const rows = document.querySelectorAll('#detail-tbody tr');
+            
+            if (!customerSupplier) {
+                alert('得意先/仕入先を選択してください。');
+                return;
+            }
+            
+            if (!date) {
+                alert('日付を入力してください。');
+                return;
+            }
+            
+            if (rows.length === 0) {
+                alert('明細を追加してください。');
+                return;
+            }
+            
+            alert('伝票を保存しました。（デモ版のため実際の保存は行われません）');
+            hideInvoiceForm();
+        }
+
         // Profile modal functionality
         const profileBtn = document.getElementById('profile-btn');
         const profileModal = document.getElementById('profile-modal');
         const closeProfile = document.getElementById('close-profile');
 
-        // Switch to sales view
-        function showSales() {
-            currentView = 'sales';
-            salesNav.className = 'nav-link active inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md bg-blue-600 text-white';
-            purchasesNav.className = 'nav-link inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white';
-            
-            salesTable.classList.remove('hidden');
-            purchaseTable.classList.add('hidden');
-            
-            pageTitle.textContent = '売上伝票一覧';
-            entityLabel.textContent = '得意先数';
-            top3Title.textContent = '得意先別金額トップ3';
-            
-            // Update search placeholder
-            const searchInput = document.querySelector('.search-input');
-            searchInput.placeholder = '得意先名、製番で検索';
-            
-            // Update icon
-            const titleIcon = pageTitle.previousElementSibling;
-            titleIcon.setAttribute('data-lucide', 'file-text');
-            titleIcon.className = 'h-8 w-8 text-blue-600 mr-3';
-            
-            // Update new button color
-            newInvoiceBtn.className = 'btn inline-flex items-center px-3 py-1.5 border border-transparent rounded shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700';
-            
-            updateTable();
-            updateSummary();
-            updateChartColor();
-            lucide.createIcons();
-        }
-
-        // Switch to purchases view
-        function showPurchases() {
-            currentView = 'purchases';
-            salesNav.className = 'nav-link inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white';
-            purchasesNav.className = 'nav-link active green inline-flex items-center px-5 py-2.5 text-base font-medium rounded-md bg-green-600 text-white';
-            
-            salesTable.classList.add('hidden');
-            purchaseTable.classList.remove('hidden');
-            
-            pageTitle.textContent = '仕入伝票一覧';
-            entityLabel.textContent = '仕入先数';
-            top3Title.textContent = '仕入先別金額トップ3';
-            
-            // Update search placeholder
-            const searchInput = document.querySelector('.search-input');
-            searchInput.placeholder = '仕入先名で検索';
-            
-            // Update icon
-            const titleIcon = pageTitle.previousElementSibling;
-            titleIcon.setAttribute('data-lucide', 'shopping-cart');
-            titleIcon.className = 'h-8 w-8 text-green-600 mr-3';
-            
-            // Update new button color
-            newInvoiceBtn.className = 'btn inline-flex items-center px-3 py-1.5 border border-transparent rounded shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700';
-            
-            updateTable();
-            updateSummary();
-            updateChartColor();
-            lucide.createIcons();
-        }
-
         // Event listeners
-        salesNav.addEventListener('click', showSales);
-        purchasesNav.addEventListener('click', showPurchases);
+        document.getElementById('sales-nav').addEventListener('click', () => switchView('sales'));
+        document.getElementById('purchases-nav').addEventListener('click', () => switchView('purchases'));
         
-        // Form modal events
-        newInvoiceBtn.addEventListener('click', () => showInvoiceForm());
-        closeFormModal.addEventListener('click', hideInvoiceForm);
-        cancelFormBtn.addEventListener('click', hideInvoiceForm);
-        
-        // Search and filter events
-        searchInput.addEventListener('input', (e) => {
-            searchTerm = e.target.value;
-            currentPage = 1;
-            updateTable();
-        });
-        
-        clearSearchBtn.addEventListener('click', () => {
-            searchTerm = '';
-            dateStart = '';
-            dateEnd = '';
-            searchInput.value = '';
-            dateStartInput.value = '';
-            dateEndInput.value = '';
-            currentPage = 1;
-            updateTable();
-        });
-        
-        dateStartInput.addEventListener('change', (e) => {
-            dateStart = e.target.value;
-            currentPage = 1;
-            updateTable();
-        });
-        
-        dateEndInput.addEventListener('change', (e) => {
-            dateEnd = e.target.value;
-            currentPage = 1;
-            updateTable();
-        });
-        
-        rowsPerPageSelect.addEventListener('change', (e) => {
-            rowsPerPage = parseInt(e.target.value);
-            currentPage = 1;
-            updateTable();
-        });
-        
-        exportCsvBtn.addEventListener('click', () => {
-            alert('CSV出力機能（デモ版では実装されていません）');
-        });
-        
-        // Pagination events
-        prevMobile.addEventListener('click', () => {
-            if (currentPage > 1) {
-                currentPage--;
-                updateTable();
+        document.getElementById('search-input').addEventListener('input', handleSearch);
+        document.getElementById('clear-search-btn').addEventListener('click', clearFilters);
+        document.getElementById('rows-per-page').addEventListener('change', handleRowsPerPageChange);
+        document.getElementById('new-invoice-btn').addEventListener('click', showInvoiceForm);
+        document.getElementById('date-start').addEventListener('change', handleSearch);
+        document.getElementById('date-end').addEventListener('change', handleSearch);
+        document.getElementById('period-select').addEventListener('change', handlePeriodChange);
+        document.getElementById('year-select').addEventListener('change', handleYearChange);
+        document.getElementById('month-select').addEventListener('change', handleMonthChange);
+        document.getElementById('profile-btn').addEventListener('click', () => document.getElementById('profile-modal').classList.remove('hidden'));
+        document.getElementById('close-profile').addEventListener('click', () => document.getElementById('profile-modal').classList.add('hidden'));
+        document.getElementById('back-to-list').addEventListener('click', hideInvoiceForm);
+        document.getElementById('save-invoice').addEventListener('click', saveInvoice);
+        document.getElementById('add-detail').addEventListener('click', addDetailRow);
+
+        document.getElementById('profile-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'profile-modal') {
+                document.getElementById('profile-modal').classList.add('hidden');
             }
-        });
-        
-        nextMobile.addEventListener('click', () => {
-            const data = currentView === 'sales' ? salesData : purchaseData;
-            const filteredData = filterData(data);
-            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
-            if (currentPage < totalPages) {
-                currentPage++;
-                updateTable();
-            }
-        });
-        
-        prevDesktop.addEventListener('click', () => {
-            if (currentPage > 1) {
-                currentPage--;
-                updateTable();
-            }
-        });
-        
-        nextDesktop.addEventListener('click', () => {
-            const data = currentView === 'sales' ? salesData : purchaseData;
-            const filteredData = filterData(data);
-            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
-            if (currentPage < totalPages) {
-                currentPage++;
-                updateTable();
-            }
-        });
-        
-        pageButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                currentPage = parseInt(btn.dataset.page);
-                updateTable();
-            });
-        });
-        
-        // Period selection events
-        periodSelect.addEventListener('change', (e) => {
-            periodType = e.target.value;
-            if (periodType === '全期間') {
-                periodFilters.classList.add('hidden');
-            } else {
-                periodFilters.classList.remove('hidden');
-                if (periodType === '月別') {
-                    monthSelect.classList.remove('hidden');
-                } else {
-                    monthSelect.classList.add('hidden');
-                }
-            }
-            updateSummary();
-        });
-        
-        yearSelect.addEventListener('change', (e) => {
-            selectedYear = parseInt(e.target.value);
-            updateSummary();
-        });
-        
-        monthSelect.addEventListener('change', (e) => {
-            selectedMonth = parseInt(e.target.value);
-            updateSummary();
-        });
-        
-        // Form submission
-        invoiceForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            alert('伝票を保存しました（デモ版）');
-            hideInvoiceForm();
         });
 
         profileBtn.addEventListener('click', () => {
@@ -1268,11 +1552,20 @@
             }
         });
 
-        // Initialize the application
-        document.addEventListener('DOMContentLoaded', () => {
-            initChart();
-            updateTable();
-            updateSummary();
+        // Form modal events
+        newInvoiceBtn.addEventListener('click', () => showInvoiceForm());
+        closeFormModal.addEventListener('click', hideInvoiceForm);
+        cancelFormBtn.addEventListener('click', hideInvoiceForm);
+        
+        exportCsvBtn.addEventListener('click', () => {
+            alert('CSV出力機能（デモ版では実装されていません）');
+        });
+        
+        // Form submission
+        invoiceForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            alert('伝票を保存しました（デモ版）');
+            hideInvoiceForm();
         });
     </script>
 </body>
